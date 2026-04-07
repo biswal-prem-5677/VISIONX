@@ -127,13 +127,15 @@ class Event(BaseModel):
     """A triggered event from the decision engine."""
     id: UUID = Field(default_factory=uuid4)
     event_type: str
-    severity: EventSeverity = EventSeverity.INFO
-    title: str
-    message: str
+    severity: str = "info"
+    title: str = ""
+    message: str = ""
+    source: str = ""
     rule_id: Optional[UUID] = None
     source_id: str = "default"
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     data: dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
     image_url: Optional[str] = None
     actions_executed: list[str] = Field(default_factory=list)
 
