@@ -1,0 +1,79 @@
+# ============================================
+# VisionX — Git Ignore
+# ============================================
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+*.whl
+
+# --- Virtual Environment ---
+.venv/
+venv/
+env/
+ENV/
+
+# --- IDE ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.settings/
+
+# --- Environment ---
+.env
+.env.local
+.env.*.local
+
+# --- AI Models ---
+*.pt
+*.onnx
+*.trt
+*.engine
+models/
+
+# --- Data ---
+data/logs/
+data/embeddings/
+data/media/
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# --- Testing ---
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+
+# --- Build ---
+*.pyc
+*.pyo
+
+# --- Node.js (for future client/) ---
+node_modules/
+.next/
+.turbo/
+*.tsbuildinfo
+
+# --- Docker ---
+docker-compose.override.yml
+
+# --- Sentry ---
+.sentryclirc
+
+# --- Misc ---
+*.log
+*.bak
+*.tmp
