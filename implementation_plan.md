@@ -2996,7 +2996,7 @@ governance/
 ### Phase 1: Foundation (Weeks 1–3) ✅ COMPLETE
 
 > **Goal:** Core engine that works with a webcam, detects objects, and displays results.
-> 
+>
 > **Completed:** 2026-04-07 | **Tests:** 26/26 passing | **Milestone:** Achieved ✅
 
 | Task | Files | Status |
@@ -3021,7 +3021,7 @@ governance/
 ### Phase 2: Intelligence (Weeks 4–6) ✅ COMPLETE
 
 > **Goal:** Decision engine + Event engine (Jarvis Core) + cloud modules.
-> 
+>
 > **Completed:** 2026-04-07 | **Tests:** 49/49 passing | **Milestone:** Achieved ✅
 
 | Task | Files | Status |
@@ -3046,9 +3046,9 @@ governance/
 ### Phase 3: Platform (Weeks 7–9) ✅ COMPLETE
 
 > **Goal:** FastAPI backend, auth, database, billing.
-> 
+>
 > **Completed:** 2026-04-07 | **Tests:** 83/83 passing | **Milestone:** Achieved ✅
-> 
+>
 > **Note:** `platform/` renamed to `server/` to avoid Python stdlib conflict.
 
 | Task | Files | Status |
