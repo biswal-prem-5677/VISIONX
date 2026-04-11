@@ -77,3 +77,9 @@ docker-compose.override.yml
 *.log
 *.bak
 *.tmp
+
+# --- Vite Cache ---
+.vite/
+
+# --- Recordings ---
+recordings/

@@ -1,0 +1,20 @@
+/** VisionX — Solar Theme (Matrix) */
+export const solar = {
+  id: 'matrix',
+  name: 'Matrix',
+  accent: '#22c55e',
+  accentHover: '#16a34a',
+  accentGlow: 'rgba(34,197,94,0.3)',
+  bgPrimary: '#020a02',
+  bgSecondary: '#061306',
+  surface: 'rgba(34,197,94,0.04)',
+  surfaceHover: 'rgba(34,197,94,0.08)',
+  border: 'rgba(34,197,94,0.1)',
+  textPrimary: '#bbf7d0',
+  textSecondary: '#4ade80',
+  textTertiary: '#14532d',
+  success: '#22c55e',
+  warning: '#fbbf24',
+  danger: '#f87171',
+  info: '#38bdf8',
+} as const;

@@ -1,0 +1,20 @@
+/** VisionX — Midnight Theme (Obsidian) */
+export const midnight = {
+  id: 'obsidian',
+  name: 'Obsidian',
+  accent: '#a78bfa',
+  accentHover: '#8b5cf6',
+  accentGlow: 'rgba(167,139,250,0.3)',
+  bgPrimary: '#0a0a0f',
+  bgSecondary: '#12121a',
+  surface: 'rgba(255,255,255,0.04)',
+  surfaceHover: 'rgba(255,255,255,0.08)',
+  border: 'rgba(255,255,255,0.06)',
+  textPrimary: '#e4e4e7',
+  textSecondary: '#a1a1aa',
+  textTertiary: '#52525b',
+  success: '#22c55e',
+  warning: '#fbbf24',
+  danger: '#f87171',
+  info: '#38bdf8',
+} as const;

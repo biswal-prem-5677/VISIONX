@@ -1,0 +1,20 @@
+/** VisionX — Forest Theme (Ember) */
+export const forest = {
+  id: 'ember',
+  name: 'Ember',
+  accent: '#f97316',
+  accentHover: '#ea580c',
+  accentGlow: 'rgba(249,115,22,0.3)',
+  bgPrimary: '#0f0a08',
+  bgSecondary: '#1a120e',
+  surface: 'rgba(249,115,22,0.04)',
+  surfaceHover: 'rgba(249,115,22,0.08)',
+  border: 'rgba(249,115,22,0.1)',
+  textPrimary: '#fff7ed',
+  textSecondary: '#fdba74',
+  textTertiary: '#7c2d12',
+  success: '#22c55e',
+  warning: '#fbbf24',
+  danger: '#f87171',
+  info: '#38bdf8',
+} as const;

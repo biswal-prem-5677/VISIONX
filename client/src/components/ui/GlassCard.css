@@ -1,0 +1,92 @@
+/* GlassCard Styles */
+
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: 22px 24px;
+  position: relative;
+  overflow: hidden;
+  cursor: default;
+  transition: border-color var(--transition-base);
+}
+
+.glass-card:hover {
+  border-color: var(--border-hover);
+}
+
+.glass-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent-glow), transparent);
+  opacity: 0;
+  transition: opacity var(--transition-base);
+}
+
+.glass-card:hover::before {
+  opacity: 1;
+}
+
+.glass-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.glass-card__title {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.glass-card__icon {
+  font-size: 1.3rem;
+  color: var(--accent);
+  opacity: 0.8;
+}
+
+.glass-card__value {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.1;
+  margin-bottom: 8px;
+  font-family: var(--font-sans);
+}
+
+.glass-card__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.glass-card__subtitle {
+  font-size: 0.78rem;
+  color: var(--text-tertiary);
+}
+
+.glass-card__trend {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.glass-card__trend.positive {
+  color: var(--success);
+  background: rgba(52, 211, 153, 0.12);
+}
+
+.glass-card__trend.negative {
+  color: var(--danger);
+  background: rgba(248, 113, 113, 0.12);
+}

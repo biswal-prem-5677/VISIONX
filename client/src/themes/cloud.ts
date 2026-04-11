@@ -1,0 +1,20 @@
+/** VisionX — Cloud Theme (Cyber) */
+export const cloud = {
+  id: 'cyber',
+  name: 'Cyber',
+  accent: '#06b6d4',
+  accentHover: '#0891b2',
+  accentGlow: 'rgba(6,182,212,0.3)',
+  bgPrimary: '#0a0f14',
+  bgSecondary: '#0f1922',
+  surface: 'rgba(6,182,212,0.04)',
+  surfaceHover: 'rgba(6,182,212,0.08)',
+  border: 'rgba(6,182,212,0.1)',
+  textPrimary: '#e0f2fe',
+  textSecondary: '#7dd3fc',
+  textTertiary: '#0c4a6e',
+  success: '#22c55e',
+  warning: '#fbbf24',
+  danger: '#f87171',
+  info: '#38bdf8',
+} as const;

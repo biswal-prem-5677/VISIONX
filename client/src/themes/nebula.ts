@@ -1,0 +1,20 @@
+/** VisionX — Nebula Theme (Aurora) */
+export const nebula = {
+  id: 'aurora',
+  name: 'Aurora',
+  accent: '#10b981',
+  accentHover: '#059669',
+  accentGlow: 'rgba(16,185,129,0.3)',
+  bgPrimary: '#0a0f0e',
+  bgSecondary: '#0f1a17',
+  surface: 'rgba(16,185,129,0.04)',
+  surfaceHover: 'rgba(16,185,129,0.08)',
+  border: 'rgba(16,185,129,0.1)',
+  textPrimary: '#d1fae5',
+  textSecondary: '#6ee7b7',
+  textTertiary: '#064e3b',
+  success: '#22c55e',
+  warning: '#fbbf24',
+  danger: '#f87171',
+  info: '#38bdf8',
+} as const;
