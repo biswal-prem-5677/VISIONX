@@ -104,7 +104,7 @@
 
 ## 2. Architecture Overview
 
-### The 5-Layer Distributed Architecture
+### The 6-Layer Distributed Architecture
 
 This **replaces** any single-system architecture. VisionX is built as a distributed, device-agnostic platform from day one.
 
@@ -236,7 +236,7 @@ visionx/
 ├── events/                        # Jarvis Core — action trigger system
 │   ├── event_engine.py            # Event processing & dispatch
 │   ├── actions/
-│   │   ├── email.py               # Email via Resend
+│   │   ├── email.py               # Email via Resend (event-triggered, e.g. "helmet missing → email supervisor")
 │   │   ├── webhook.py             # External webhook calls
 │   │   ├── api_call.py            # REST API triggers
 │   │   ├── iot.py                 # IoT device signals
@@ -250,7 +250,7 @@ visionx/
 │   ├── device_manager.py          # Device registration & tracking
 │   └── offline_buffer.py          # Offline → online recovery queue
 │
-├── platform/                      # Backend services
+├── server/                        # Backend services (renamed from platform/ to avoid Python stdlib conflict)
 │   ├── api/
 │   │   ├── main.py                # FastAPI application entry
 │   │   ├── routes/
@@ -295,7 +295,7 @@ visionx/
 │   │   ├── notification_engine.py     # Central notification dispatcher
 │   │   ├── channels/
 │   │   │   ├── push.py                # Web push / mobile push
-│   │   │   ├── email.py               # Email via Resend
+│   │   │   ├── email.py               # Email via Resend (platform notifications, e.g. "subscription expiring")
 │   │   │   ├── in_app.py              # In-app notification bell
 │   │   │   └── sms.py                 # SMS (Twilio)
 │   │   └── templates.py              # Notification templates
@@ -824,7 +824,7 @@ Helmet missing detected
 |---|---|
 | **Framework** | React 18 + TypeScript |
 | **Build Tool** | Vite |
-| **Styling** | Tailwind CSS v4 + CSS custom properties |
+| **Styling** | Vanilla CSS + CSS custom properties (design system with data-theme selectors) |
 | **3D Engine** | Three.js via React Three Fiber (`@react-three/fiber`) |
 | **3D Helpers** | `@react-three/drei` (OrbitControls, Environment, etc.) |
 | **Animations** | Framer Motion (layout, gestures, physics-based) |
@@ -905,6 +905,18 @@ Each theme changes: background color, glass tint, accent glow, 3D scene, charact
 | 3 | **Nebula** (Creative) | `#050505` Pure Black | `rgba(255, 255, 255, 0.05)` | `#10b981` Emerald + `#a855f7` Purple | Fluid, follows gaze |
 | 4 | **Forest** (Focus) | `#0a1f0a` Deep Emerald | `rgba(255, 255, 255, 0.08)` | `#10b981` Emerald + `#84cc16` Lime | Natural, swaying |
 | 5 | **Solar** (Performance) | `#271a18` Dark Bronze | `rgba(255, 255, 255, 0.1)` | `#f59e0b` Amber + `#f43f5e` Rose | Aggressive, precision |
+
+### Theme Name Mapping (Plan ↔ UI)
+
+> The plan uses conceptual names; the UI uses branded display names.
+
+| Plan Name | UI Display Name | CSS `data-theme` |
+|---|---|---|
+| Midnight | Obsidian | `obsidian` |
+| Cloud | Aurora | `aurora` |
+| Nebula | Cyber | `cyber` |
+| Forest | Matrix | `matrix` |
+| Solar | Ember | `ember` |
 
 ### Theme Implementation
 
@@ -2679,6 +2691,13 @@ Action Executed (alert, dispatch, record, track)
 - Every domain (city, aerial, healthcare, agriculture) plugs into this engine
 - One engine to rule all 200+ problems
 
+### Relationship: Problem Engine vs Decision Engine
+
+> **Decision Engine** (§4D, `decision/engine.py`) = **rule-based**, per-user configured: "if X then Y"
+> **Problem Engine** (§49, `problem_engine/`) = **AI-based**, system-level: detect → classify → prioritize → route
+>
+> The Problem Engine is the AI layer **above** the Decision Engine. Problem Engine detects **what** happened; Decision Engine executes the **configured response**.
+
 ---
 
 ## 50. Global Tracking & Location Intelligence ⭐ NEW
@@ -3330,36 +3349,36 @@ governance/
 > [!IMPORTANT]
 > **Please review and provide feedback on the following decisions:**
 
-### Architecture Decisions
+### Architecture Decisions — ✅ RESOLVED
 
-1. **Starting Focus:** Should we begin with **Phase 1 (Edge Engine)** as planned, or would you prefer to start with the **UI (Phase 4)** first to have a visual prototype?
+1. ✅ **Starting Focus:** Started with Phase 1 (Edge Engine) as planned. Phases 1-4 complete.
 
-2. **YOLO Version:** Should we use **YOLOv8** (mature, well-documented) or **YOLOv9/v10** (newer, potentially better accuracy)?
+2. ✅ **YOLO Version:** Using **YOLOv8** (mature, well-documented).
 
-3. **Tracking Algorithm:** **DeepSORT** (proven, widely used) vs **ByteTrack** (faster, fewer dependencies)?
+3. ✅ **Tracking Algorithm:** Using **DeepSORT** (proven, widely used).
 
-### UI Decisions
+### UI Decisions — Partially Resolved
 
-4. **Tailwind CSS Version:** You mentioned Tailwind CSS — should we use **Tailwind v3** (stable) or **Tailwind v4** (latest, CSS-first)?
+4. ✅ **Styling:** Using **Vanilla CSS + CSS custom properties** (no Tailwind — pure design system with `data-theme` selectors).
 
-5. **3D Character Models:** Should we use:
+5. ❓ **3D Character Models:** Still open — choose between:
    - **Ready Player Me** avatars (realistic, customizable)
    - **Stylized low-poly** characters (lighter, faster to load)
    - **Abstract geometric** forms (most performant, futuristic feel)
 
-6. **3D Background Complexity:** Full Three.js particle systems, or lighter **CSS-only** animated backgrounds with a few Three.js accent elements?
+6. ❓ **3D Background Complexity:** Still open — Full Three.js particle systems, or lighter **CSS-only** animated backgrounds with a few Three.js accent elements?
 
-### Platform Decisions
+### Platform Decisions — Still Open
 
-7. **Database Provider:** Self-hosted PostgreSQL, or managed (Supabase/Neon)?
+7. ❓ **Database Provider:** Self-hosted PostgreSQL, or managed (Supabase/Neon)?
 
-8. **Deployment Target:** Primary cloud provider preference? (AWS, GCP, Vercel, self-hosted)
+8. ❓ **Deployment Target:** Primary cloud provider preference? (AWS, GCP, Vercel, self-hosted)
 
-9. **Mobile App:** Build native mobile app now, or focus on responsive web first?
+9. ❓ **Mobile App:** Build native mobile app now, or focus on responsive web first?
 
-### Scope Decisions
+### Scope Decisions — ✅ RESOLVED
 
-10. **Phase Priority:** Given the scope, should we treat Phases 5–8 as "future roadmap" and focus execution on Phases 1–4 first?
+10. ✅ **Phase Priority:** Phases 1–4 executed and complete. Phases 5–12 are the forward roadmap.
 
 ---
 
