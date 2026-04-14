@@ -13,14 +13,16 @@ export interface ThemeInfo {
   name: string;
   accent: string;
   description: string;
+  character: string;
+  characterName: string;
 }
 
 export const THEMES: ThemeInfo[] = [
-  { id: 'obsidian', name: 'Obsidian', accent: '#a78bfa', description: 'Deep purple elegance' },
-  { id: 'cyber', name: 'Cyber Neon', accent: '#00e5ff', description: 'Futuristic cyan glow' },
-  { id: 'aurora', name: 'Aurora', accent: '#38bdf8', description: 'Northern lights blue' },
-  { id: 'ember', name: 'Ember', accent: '#fb923c', description: 'Warm fire orange' },
-  { id: 'matrix', name: 'Matrix', accent: '#22c55e', description: 'Digital green rain' },
+  { id: 'obsidian', name: 'Obsidian', accent: '#a78bfa', description: 'Deep purple elegance', character: 'guardian', characterName: 'The Guardian' },
+  { id: 'cyber', name: 'Cyber Neon', accent: '#00e5ff', description: 'Futuristic cyan glow', character: 'muse', characterName: 'The Muse' },
+  { id: 'aurora', name: 'Aurora', accent: '#38bdf8', description: 'Northern lights blue', character: 'guide', characterName: 'The Guide' },
+  { id: 'ember', name: 'Ember', accent: '#fb923c', description: 'Warm fire orange', character: 'pilot', characterName: 'The Pilot' },
+  { id: 'matrix', name: 'Matrix', accent: '#22c55e', description: 'Digital green rain', character: 'sage', characterName: 'The Sage' },
 ];
 
 interface ThemeState {
