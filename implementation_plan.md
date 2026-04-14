@@ -135,7 +135,7 @@ This **replaces** any single-system architecture. VisionX is built as a distribu
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    1. DEVICE LAYER                          │
-│         Mobile · CCTV · Desktop · Webcam · IP Cam          │
+│         Mobile · CCTV · Desktop · Webcam · IP Cam           │
 │              (Camera input, local UI)                       │
 └────────────────────────┬────────────────────────────────────┘
                          │
@@ -143,38 +143,38 @@ This **replaces** any single-system architecture. VisionX is built as a distribu
 ┌─────────────────────────────────────────────────────────────┐
 │                  2. EDGE ENGINE                             │
 │          Local AI Processing (ultra-low latency)            │
-│     Detection · Tracking · Basic Alerts · Preprocessing    │
-│         OpenCV · ONNX Runtime · TensorRT                   │
+│     Detection · Tracking · Basic Alerts · Preprocessing     │
+│         OpenCV · ONNX Runtime · TensorRT                    │
 └────────────────────────┬────────────────────────────────────┘
                          │
                          ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                 3. SYNC LAYER                               │
-│        Edge ↔ Cloud Communication                          │
-│    Data Streaming · Model Updates · Event Syncing          │
-│    Buffering · Retries · Offline→Online Recovery           │
+│        Edge ↔ Cloud Communication                           │
+│    Data Streaming · Model Updates · Event Syncing           │
+│    Buffering · Retries · Offline→Online Recovery            │
 └────────────────────────┬────────────────────────────────────┘
                          │
                          ▼
 ┌─────────────────────────────────────────────────────────────┐
 │               4. CLOUD AI ENGINE                            │
 │       Heavy Processing (server-side)                        │
-│   Face Recognition · OCR · Analytics · Learning            │
-│   Decision Engine · Event Engine                           │
+│   Face Recognition · OCR · Analytics · Learning             │
+│   Decision Engine · Event Engine                            │
 └────────────────────────┬────────────────────────────────────┘
                          │
                          ▼
 ┌─────────────────────────────────────────────────────────────┐
 │            5. PLATFORM SERVICES                             │
-│    API (FastAPI) · Database · Auth · Billing               │
-│    Notification Service · Analytics Service                │
+│    API (FastAPI) · Database · Auth · Billing                │
+│    Notification Service · Analytics Service                 │
 └────────────────────────┬────────────────────────────────────┘
                          │
                          ▼
 ┌─────────────────────────────────────────────────────────────┐
 │               6. CLIENT LAYER                               │
-│        Dashboard · Mobile App · Config UI                  │
-│    React + Three.js + Glassmorphism · WebSockets           │
+│        Dashboard · Mobile App · Config UI                   │
+│    React + Three.js + Glassmorphism · WebSockets            │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -655,12 +655,12 @@ visionx/
 
 **Where it runs:** Mobile, CCTV, Laptop, Webcam, IP Camera
 
-| Responsibility | Detail |
-|---|---|
-| Camera Input | Support webcam, RTSP, IP camera, video files |
-| Frame Capture | Multi-threaded capture engine |
-| Local UI | Lightweight display (bounding boxes, FPS) |
-| Device Identity | Each device registers with unique token |
+| Responsibility  |                 Detail                       |
+|-----------------|----------------------------------------------|
+| Camera Input    | Support webcam, RTSP, IP camera, video files |
+| Frame Capture   | Multi-threaded capture engine                |
+| Local UI        | Lightweight display (bounding boxes, FPS)    |
+| Device Identity | Each device registers with unique token      |
 
 **Supported Sources:**
 - USB Webcam → OpenCV `VideoCapture(0)`
@@ -675,15 +675,15 @@ visionx/
 
 **Where it runs:** Locally on the device (laptop, Jetson, Raspberry Pi, mobile)
 
-| Component | Purpose |
-|---|---|
-| `preprocessor.py` | CLAHE enhancement, noise reduction, edge detection |
-| `detection.py` | YOLO object detection (person, car, phone, etc.) |
-| `tracking.py` | Unique ID assignment, movement tracking, occlusion handling |
-| `counting.py` | People count, object count per ROI |
-| `measurement.py` | Distance estimation, area calculation |
-| `roi_engine.py` | Focus processing on specific regions |
-| `threading_engine.py` | Separate threads for capture, processing, output |
+| Component             | Purpose                                                     |
+|-----------------------|-------------------------------------------------------------|
+| `preprocessor.py`     | CLAHE enhancement, noise reduction, edge detection          |
+| `detection.py`        | YOLO object detection (person, car, phone, etc.)            |
+| `tracking.py`         | Unique ID assignment, movement tracking, occlusion handling |
+| `counting.py`         | People count, object count per ROI                          |
+| `measurement.py`      | Distance estimation, area calculation                       |
+| `roi_engine.py`       | Focus processing on specific regions                        |
+| `threading_engine.py` | Separate threads for capture, processing, output            |
 
 **Tech Stack:**
 - OpenCV (capture + preprocessing)
@@ -694,11 +694,11 @@ visionx/
 
 **Performance Modes:**
 
-| Mode | Use Case | Config |
-|---|---|---|
-| **Lite** | Mobile, Raspberry Pi | 320px input, skip frames, INT8 |
-| **Balanced** | Laptop, Desktop | 640px input, every frame, FP16 |
-| **Max** | Cloud GPU, Jetson AGX | 1280px input, batch inference, FP32 |
+| Mode         | Use Case              | Config                              |
+|--------------|-----------------------|-------------------------------------|
+| **Lite**     | Mobile, Raspberry Pi  | 320px input, skip frames, INT8      |
+| **Balanced** | Laptop, Desktop       | 640px input, every frame, FP16      |
+| **Max**      | Cloud GPU, Jetson AGX | 1280px input, batch inference, FP32 |
 
 ---
 
@@ -706,11 +706,11 @@ visionx/
 
 **Purpose:** Edge ↔ Cloud communication bridge
 
-| Component | Purpose |
-|---|---|
-| `sync_engine.py` | Data streaming, retries, compression |
+| Component           | Purpose                                               |
+|---------------------|-------------------------------------------------------|
+| `sync_engine.py`    | Data streaming, retries, compression                  |
 | `device_manager.py` | Register devices, track active cameras, health checks |
-| `offline_buffer.py` | Queue events when offline, sync when reconnected |
+| `offline_buffer.py` | Queue events when offline, sync when reconnected      |
 
 **Key Behaviors:**
 - **Normal:** Real-time streaming of filtered events to cloud
@@ -724,16 +724,16 @@ visionx/
 
 **Where it runs:** Server (AWS/GCP/self-hosted)
 
-| Component | Purpose |
-|---|---|
-| `face.py` | Face recognition, database matching, blacklist/whitelist |
-| `ocr.py` | Number plates, labels, documents, signage |
-| `pose.py` | Human skeleton detection, action recognition |
-| `segmentation.py` | Pixel-level object understanding |
-| `speed.py` | Object movement speed estimation |
-| `behavior.py` | Loitering detection, suspicious movement analysis |
-| `model_manager.py` | Model versioning, A/B testing, remote deployment |
-| `embeddings.py` | Generate and store vector embeddings (Pinecone) |
+| Component          | Purpose                                                  |
+|--------------------|----------------------------------------------------------|
+| `face.py`          | Face recognition, database matching, blacklist/whitelist |
+| `ocr.py`           | Number plates, labels, documents, signage                |
+| `pose.py`          | Human skeleton detection, action recognition             |
+| `segmentation.py`  | Pixel-level object understanding                         |
+| `speed.py`         | Object movement speed estimation                         |
+| `behavior.py`      | Loitering detection, suspicious movement analysis        |
+| `model_manager.py` | Model versioning, A/B testing, remote deployment         |
+| `embeddings.py`    | Generate and store vector embeddings (Pinecone)          |
 
 ---
 
@@ -741,15 +741,15 @@ visionx/
 
 **Microservices Architecture:**
 
-| Service | Responsibility |
-|---|---|
-| **Auth Service** | JWT/OAuth, device tokens, RBAC |
-| **Vision Service** | AI processing API endpoints |
-| **Tracking Service** | Real-time object tracking state |
-| **Billing Service** | Stripe subscriptions, feature gating |
-| **Notification Service** | Email (Resend), push, SMS |
-| **Analytics Service** | Aggregation, reports, heatmaps |
-| **Config Service** | Remote configuration, rule updates |
+| Service                  | Responsibility                       |
+|--------------------------|--------------------------------------|
+| **Auth Service**         | JWT/OAuth, device tokens, RBAC       |
+| **Vision Service**       | AI processing API endpoints          |
+| **Tracking Service**     | Real-time object tracking state      |
+| **Billing Service**      | Stripe subscriptions, feature gating |
+| **Notification Service** | Email (Resend), push, SMS            |
+| **Analytics Service**    | Aggregation, reports, heatmaps       |
+| **Config Service**       | Remote configuration, rule updates   |
 
 **Communication:**
 - REST APIs (CRUD operations)
@@ -826,34 +826,34 @@ The heart of VisionX. Every frame flows through this pipeline:
 
 ### Edge vs Cloud Split
 
-| Stage | Edge (local) | Cloud (server) |
-|---|---|---|
-| Preprocessing | ✅ | — |
-| Detection | ✅ | ✅ (advanced) |
-| Tracking | ✅ | — |
-| OCR | ⚠️ (lightweight, §53) | ✅ (full) |
-| Face Recognition | ⚠️ (basic, §53) | ✅ (full) |
-| Pose Estimation | — | ✅ |
-| Segmentation | — | ✅ |
-| Counting | ✅ | — |
-| Speed Estimation | ✅ | — |
-| Behavior Analysis | ⚠️ (basic) | ✅ (full) |
-| Decision Engine | ✅ (fast + local safety) | ✅ (deep + global) |
-| Governance | ✅ (safety only) | ✅ (full audit + ethics) |
-| Failsafe Controller | ✅ | ✅ |
-| Event Engine | ✅ (basic) | ✅ (full) |
+| Stage               | Edge (local)              | Cloud (server)           |
+|---------------------|---------------------------|--------------------------|
+| Preprocessing       | ✅                       | —                         |
+| Detection           | ✅                       | ✅ (advanced)            |
+| Tracking            | ✅                       | —                         |
+| OCR                 | ⚠️ (lightweight, §53)    | ✅ (full)                |
+| Face Recognition    | ⚠️ (basic, §53)          | ✅ (full)                |
+| Pose Estimation     | —                         | ✅                       |
+| Segmentation        | —                         | ✅                       |
+| Counting            | ✅                       | —                         |
+| Speed Estimation    | ✅                       | —                         |
+| Behavior Analysis   | ⚠️ (basic)               | ✅ (full)                |
+| Decision Engine     | ✅ (fast + local safety) | ✅ (deep + global)       |
+| Governance          | ✅ (safety only)         | ✅ (full audit + ethics) |
+| Failsafe Controller | ✅                       | ✅                       |
+| Event Engine        | ✅ (basic)               | ✅ (full)                |
 
 ### ⚔️ Architectural Responsibility Split (Conflict Resolution)
 
 > **Strict separation — no ambiguity:**
 
-| Layer | Responsibility | What it does NOT do |
-|---|---|---|
-| **Decision Engine** | "What to do" — evaluate rules, pick action | Does NOT validate safety/ethics |
-| **Governance Layer** | "Allowed or not" — validate, audit, block | Does NOT make decisions |
+| Layer                   | Responsibility                              | What it does NOT do |
+|-------------------------|---------------------------------------------|---|
+| **Decision Engine**     | "What to do" — evaluate rules, pick action  | Does NOT validate safety/ethics |
+| **Governance Layer**    | "Allowed or not" — validate, audit, block   | Does NOT make decisions |
 | **Failsafe Controller** | "What if governance fails" — fallback rules | Does NOT replace governance |
-| **Edge** | Fast + local safety decisions | Does NOT do deep analysis |
-| **Cloud** | Deep + global intelligence | Does NOT handle latency-critical actions |
+| **Edge**                | Fast + local safety decisions               | Does NOT do deep analysis |
+| **Cloud**               | Deep + global intelligence                  | Does NOT handle latency-critical actions |
 
 ---
 

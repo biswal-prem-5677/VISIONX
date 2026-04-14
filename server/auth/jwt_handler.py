@@ -8,7 +8,7 @@ Supports access tokens and refresh tokens.
 from __future__ import annotations
 
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 from uuid import UUID
 
@@ -124,8 +124,8 @@ class JWTHandler:
             return TokenPayload(
                 sub=payload["sub"],
                 role=payload.get("role", "user"),
-                exp=datetime.fromtimestamp(payload["exp"]) if "exp" in payload else None,
-                iat=datetime.fromtimestamp(payload["iat"]) if "iat" in payload else None,
+                exp=datetime.fromtimestamp(payload["exp"], tz=timezone.utc) if "exp" in payload else None,
+                iat=datetime.fromtimestamp(payload["iat"], tz=timezone.utc) if "iat" in payload else None,
                 jti=jti,
             )
 
@@ -155,7 +155,7 @@ class JWTHandler:
             logger.error("PyJWT not installed. Install with: pip install PyJWT")
             return ""
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         payload = {
             "sub": subject,
             "role": role,

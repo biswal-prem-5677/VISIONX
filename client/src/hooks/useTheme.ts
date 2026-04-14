@@ -4,14 +4,14 @@
  */
 
 import { useCallback } from 'react';
-import { useThemeStore, THEMES, type ThemeId } from '../stores/themeStore';
+import { useThemeStore, THEMES, type ThemeName } from '../stores/themeStore';
 
 export function useTheme() {
   const { theme, setTheme, cycleTheme } = useThemeStore();
 
   const currentTheme = THEMES.find((t) => t.id === theme) || THEMES[0];
 
-  const applyTheme = useCallback((themeId: ThemeId) => {
+  const applyTheme = useCallback((themeId: ThemeName) => {
     setTheme(themeId);
     document.documentElement.setAttribute(
       'data-theme',

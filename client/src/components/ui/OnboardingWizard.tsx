@@ -5,8 +5,8 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { GlassCard } from '../components/ui/GlassCard';
-import { GlowButton } from '../components/ui/GlowButton';
+import { GlassCard } from './GlassCard';
+import { GlowButton } from './GlowButton';
 
 interface Step {
   id: number;

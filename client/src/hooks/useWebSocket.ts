@@ -35,7 +35,7 @@ export function useWebSocket(options: WebSocketOptions) {
 
   const wsRef = useRef<WebSocket | null>(null);
   const retryCountRef = useRef(0);
-  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const [state, setState] = useState<WebSocketState>({
     isConnected: false,
