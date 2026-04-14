@@ -847,12 +847,12 @@ The heart of VisionX. Every frame flows through this pipeline:
 
 > **Strict separation — no ambiguity:**
 
-| Layer                   | Responsibility                              | What it does NOT do |
-|-------------------------|---------------------------------------------|---|
-| **Decision Engine**     | "What to do" — evaluate rules, pick action  | Does NOT validate safety/ethics |
-| **Governance Layer**    | "Allowed or not" — validate, audit, block   | Does NOT make decisions |
-| **Failsafe Controller** | "What if governance fails" — fallback rules | Does NOT replace governance |
-| **Edge**                | Fast + local safety decisions               | Does NOT do deep analysis |
+| Layer                   | Responsibility                              | What it does NOT do                      |
+|-------------------------|---------------------------------------------|------------------------------------------|
+| **Decision Engine**     | "What to do" — evaluate rules, pick action  | Does NOT validate safety/ethics          |
+| **Governance Layer**    | "Allowed or not" — validate, audit, block   | Does NOT make decisions                  |
+| **Failsafe Controller** | "What if governance fails" — fallback rules | Does NOT replace governance              |
+| **Edge**                | Fast + local safety decisions               | Does NOT do deep analysis                |
 | **Cloud**               | Deep + global intelligence                  | Does NOT handle latency-critical actions |
 
 ---
