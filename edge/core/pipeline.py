@@ -28,6 +28,8 @@ from edge.modules.tracking import TrackingModule
 from edge.roi.roi_engine import ROIEngine
 from shared.models import Detection, FrameResult, ROIZone
 from visualization.overlay import Overlay
+from decision.engine import DecisionEngine
+from events.event_engine import EventEngine
 
 
 class Pipeline:
@@ -55,6 +57,8 @@ class Pipeline:
         self._counter: Optional[Counter] = None
         self._roi_engine: Optional[ROIEngine] = None
         self._overlay: Optional[Overlay] = None
+        self._decision_engine: Optional[DecisionEngine] = None
+        self._event_engine: Optional[EventEngine] = None
         self._threading_engine: Optional[ThreadingEngine] = None
 
         # --- State ---
@@ -117,6 +121,10 @@ class Pipeline:
             show_fps=self.config.show_fps,
         )
 
+        # Decision + Event engines
+        self._decision_engine = DecisionEngine()
+        self._event_engine = EventEngine()
+
         logger.info("Pipeline initialized successfully")
 
     def _process_frame(self, frame: np.ndarray, frame_id: int) -> dict:
@@ -178,6 +186,21 @@ class Pipeline:
         )
 
         self._last_result = result
+
+        # 6. Evaluate decision rules
+        if self._decision_engine:
+            triggered_rules = self._decision_engine.evaluate(result)
+            if triggered_rules and self._event_engine:
+                events = self._event_engine.process_rule_results(
+                    triggered_rules,
+                    frame_context={"frame_id": frame_id, "detections": len(detections)},
+                )
+                if events:
+                    result.metadata["events"] = [
+                        {"type": e.event_type, "severity": e.severity, "message": e.message}
+                        for e in events
+                    ]
+
         return result
 
     def _output_frame(self, frame: np.ndarray, result: dict) -> None:

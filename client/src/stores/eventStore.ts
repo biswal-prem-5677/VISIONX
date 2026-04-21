@@ -1,9 +1,10 @@
 /**
  * VisionX — Event Store
- * Alert and event state from decision/event engines
+ * Alert and event state from decision/event engines (persisted)
  */
 
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 export interface VisionEvent {
   id: string;
@@ -23,33 +24,38 @@ interface EventState {
   clearEvents: () => void;
 }
 
-export const useEventStore = create<EventState>((set) => ({
-  events: [],
-  activeAlerts: 0,
+export const useEventStore = create<EventState>()(
+  persist(
+    (set) => ({
+      events: [],
+      activeAlerts: 0,
 
-  addEvent: (event) =>
-    set((s) => {
-      const newEvent: VisionEvent = {
-        ...event,
-        id: Date.now().toString(),
-        timestamp: new Date().toISOString(),
-        acknowledged: false,
-      };
-      const events = [newEvent, ...s.events].slice(0, 500);
-      return {
-        events,
-        activeAlerts: events.filter((e) => !e.acknowledged && e.severity !== 'info').length,
-      };
+      addEvent: (event) =>
+        set((s) => {
+          const newEvent: VisionEvent = {
+            ...event,
+            id: Date.now().toString(),
+            timestamp: new Date().toISOString(),
+            acknowledged: false,
+          };
+          const events = [newEvent, ...s.events].slice(0, 500);
+          return {
+            events,
+            activeAlerts: events.filter((e) => !e.acknowledged && e.severity !== 'info').length,
+          };
+        }),
+
+      acknowledgeEvent: (id) =>
+        set((s) => {
+          const events = s.events.map((e) => e.id === id ? { ...e, acknowledged: true } : e);
+          return {
+            events,
+            activeAlerts: events.filter((e) => !e.acknowledged && e.severity !== 'info').length,
+          };
+        }),
+
+      clearEvents: () => set({ events: [], activeAlerts: 0 }),
     }),
-
-  acknowledgeEvent: (id) =>
-    set((s) => {
-      const events = s.events.map((e) => e.id === id ? { ...e, acknowledged: true } : e);
-      return {
-        events,
-        activeAlerts: events.filter((e) => !e.acknowledged && e.severity !== 'info').length,
-      };
-    }),
-
-  clearEvents: () => set({ events: [], activeAlerts: 0 }),
-}));
+    { name: 'vx-events' }
+  )
+);

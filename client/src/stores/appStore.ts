@@ -1,9 +1,10 @@
 /**
  * VisionX — App Store
- * Global application state
+ * Global application state (persisted)
  */
 
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 export type AppMode = 'monitoring' | 'analytics' | 'settings' | 'automation' | 'help' | 'admin' | 'user';
 
@@ -14,10 +15,15 @@ interface AppState {
   toggleSidebar: () => void;
 }
 
-export const useAppStore = create<AppState>((set) => ({
-  mode: 'monitoring',
-  sidebarCollapsed: false,
+export const useAppStore = create<AppState>()(
+  persist(
+    (set) => ({
+      mode: 'monitoring',
+      sidebarCollapsed: false,
 
-  setMode: (mode) => set({ mode }),
-  toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
-}));
+      setMode: (mode) => set({ mode }),
+      toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
+    }),
+    { name: 'vx-app' }
+  )
+);

@@ -7,7 +7,7 @@ These are the universal data contracts of the system.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Optional
 from uuid import UUID, uuid4
@@ -56,7 +56,7 @@ class Detection(BaseModel):
 class FrameResult(BaseModel):
     """Complete result for a single processed frame."""
     frame_id: int
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     detections: list[Detection] = Field(default_factory=list)
     fps: float = 0.0
     processing_time_ms: float = 0.0
@@ -133,7 +133,7 @@ class Event(BaseModel):
     source: str = ""
     rule_id: Optional[UUID] = None
     source_id: str = "default"
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     data: dict[str, Any] = Field(default_factory=dict)
     metadata: dict[str, Any] = Field(default_factory=dict)
     image_url: Optional[str] = None
@@ -183,7 +183,7 @@ class CrashReport(BaseModel):
     crash_id: UUID = Field(default_factory=uuid4)
     user_id: Optional[UUID] = None
     session_id: Optional[UUID] = None
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     error_message: str
     stack_trace: str = ""
     breadcrumbs: list[str] = Field(default_factory=list)
@@ -206,4 +206,4 @@ class UsageEvent(BaseModel):
     session_id: Optional[UUID] = None
     duration_ms: Optional[int] = None
     metadata: dict[str, Any] = Field(default_factory=dict)
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

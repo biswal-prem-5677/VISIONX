@@ -9,7 +9,9 @@ Event Types: Alert · Notification · Automation trigger · API call · Hardware
 
 from __future__ import annotations
 
+import asyncio
 import time
+import threading
 from collections import defaultdict
 from typing import Any, Optional
 
@@ -29,7 +31,7 @@ class EventAction:
 
     def execute(self, event: Event, context: dict[str, Any]) -> bool:
         """
-        Execute the action.
+        Execute the action (synchronous).
 
         Args:
             event: The event that triggered this action
@@ -50,6 +52,7 @@ class EventEngine:
 
     Receives rule results from the Decision Engine and dispatches
     the appropriate actions (email, webhook, log, IoT, etc.).
+    Actions are dispatched asynchronously to avoid blocking the pipeline.
 
     Usage:
         engine = EventEngine()
@@ -66,6 +69,7 @@ class EventEngine:
             lambda: {"success": 0, "failure": 0}
         )
         self._total_events: int = 0
+        self._dispatch_queue: list[tuple[str, Event, dict]] = []
 
         logger.info("Event Engine (Jarvis Core) initialized")
 
@@ -87,13 +91,7 @@ class EventEngine:
     ) -> list[Event]:
         """
         Process triggered rule results and dispatch actions.
-
-        Args:
-            results: List of triggered RuleResults from DecisionEngine
-            frame_context: Optional additional context (frame data, etc.)
-
-        Returns:
-            List of created Event objects
+        Actions are dispatched in a background thread to avoid blocking.
         """
         events: list[Event] = []
         context = frame_context or {}
@@ -124,13 +122,28 @@ class EventEngine:
             if len(self._event_history) > self._max_history:
                 self._event_history = self._event_history[-self._max_history:]
 
-            # Dispatch actions
+            # Dispatch actions asynchronously (non-blocking)
             for action_name in result.actions:
-                self._dispatch_action(action_name, event, context)
+                self._dispatch_async(action_name, event, context)
 
             events.append(event)
 
         return events
+
+    def _dispatch_async(
+        self,
+        action_name: str,
+        event: Event,
+        context: dict[str, Any],
+    ) -> None:
+        """Dispatch action in a background thread to avoid blocking pipeline."""
+        thread = threading.Thread(
+            target=self._dispatch_action,
+            args=(action_name, event, context),
+            daemon=True,
+            name=f"action-{action_name}",
+        )
+        thread.start()
 
     def _dispatch_action(
         self,
@@ -138,7 +151,7 @@ class EventEngine:
         event: Event,
         context: dict[str, Any],
     ) -> None:
-        """Dispatch a single action."""
+        """Execute a single action (runs in background thread)."""
         action = self._actions.get(action_name)
 
         if action is None:

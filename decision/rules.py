@@ -82,6 +82,8 @@ class Rule(BaseModel):
     actions: list[str] = Field(default_factory=list)
     severity: RuleSeverity = RuleSeverity.WARNING
     cooldown_seconds: int = 30  # Minimum seconds between triggers
+    priority: int = 5  # 1 = highest priority, 10 = lowest
+    group: str = ""  # Mutual exclusion group (e.g., "access_control")
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 

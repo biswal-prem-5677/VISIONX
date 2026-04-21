@@ -144,6 +144,7 @@ from server.api.routes.events import router as events_router
 from server.api.routes.devices import router as devices_router
 from server.api.routes.analytics import router as analytics_router
 from server.api.routes.admin import router as admin_router
+from server.api.routes.gdpr import router as gdpr_router
 
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["Authentication"])
 app.include_router(vision_router, prefix="/api/v1/vision", tags=["Vision"])
@@ -151,6 +152,7 @@ app.include_router(events_router, prefix="/api/v1/events", tags=["Events"])
 app.include_router(devices_router, prefix="/api/v1/devices", tags=["Devices"])
 app.include_router(analytics_router, prefix="/api/v1/analytics", tags=["Analytics"])
 app.include_router(admin_router, prefix="/api/v1/admin", tags=["Admin"])
+app.include_router(gdpr_router, prefix="/api/v1", tags=["GDPR"])
 
 
 # ============================================

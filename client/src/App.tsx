@@ -8,6 +8,7 @@ import { useThemeStore } from './stores/themeStore';
 import { useAppStore } from './stores/appStore';
 import { useCrashReporter } from './hooks/useCrashReporter';
 import { useStateRecovery } from './hooks/useStateRecovery';
+import { useVisionStream } from './hooks/useVisionStream';
 
 import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
@@ -54,6 +55,9 @@ function App() {
 
   // Initialize global crash reporter
   useCrashReporter();
+
+  // Initialize WebSocket → Zustand store bridge
+  useVisionStream();
 
   // Initialize state recovery (auto-save every 5s)
   const { restore } = useStateRecovery();

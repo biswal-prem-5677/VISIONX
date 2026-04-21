@@ -68,12 +68,8 @@ class DecisionEngine:
     def evaluate(self, frame_result: FrameResult) -> list[RuleResult]:
         """
         Evaluate all enabled rules against the current frame result.
-
-        Args:
-            frame_result: The result from pipeline processing
-
-        Returns:
-            List of RuleResults for rules that were triggered
+        Rules are evaluated in priority order (1 = highest).
+        Conflicting rules in the same group: highest priority wins.
         """
         self._total_evaluations += 1
         now = time.time()
@@ -82,13 +78,27 @@ class DecisionEngine:
         # Build context from frame result
         context = self._build_context(frame_result)
 
-        for rule in self._rules.values():
-            if not rule.enabled:
-                continue
+        # Sort rules by priority (lower number = higher priority)
+        sorted_rules = sorted(
+            [r for r in self._rules.values() if r.enabled],
+            key=lambda r: r.priority,
+        )
 
+        # Track which groups have already been triggered (conflict resolution)
+        triggered_groups: set[str] = set()
+
+        for rule in sorted_rules:
             # Check cooldown
             last = self._last_triggered.get(rule.id, 0)
             if now - last < rule.cooldown_seconds:
+                continue
+
+            # Mutual exclusion: skip if a higher-priority rule in same group already fired
+            if rule.group and rule.group in triggered_groups:
+                logger.debug(
+                    f"Rule skipped (group conflict): {rule.name} "
+                    f"(group '{rule.group}' already triggered by higher-priority rule)"
+                )
                 continue
 
             # Evaluate conditions
@@ -99,8 +109,13 @@ class DecisionEngine:
                 self._trigger_counts[rule.id] = self._trigger_counts.get(rule.id, 0) + 1
                 triggered_results.append(result)
 
+                # Mark group as triggered
+                if rule.group:
+                    triggered_groups.add(rule.group)
+
                 logger.info(
                     f"Rule triggered: {rule.name} | "
+                    f"Priority: {rule.priority} | "
                     f"Severity: {rule.severity} | "
                     f"Actions: {rule.actions}"
                 )

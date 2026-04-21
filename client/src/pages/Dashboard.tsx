@@ -1,35 +1,30 @@
 /**
  * VisionX — Dashboard Page (MODE 1: Live Monitoring)
  * Real-time camera feed, detections, alerts, status
+ * Wired to visionStore + eventStore via WebSocket
  */
 
-import { useState } from 'react';
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { GlassCard } from '../components/ui/GlassCard';
 import { GlowButton } from '../components/ui/GlowButton';
-
-const mockDetections = [
-  { id: 1, label: 'Person', confidence: 0.94, trackId: 12 },
-  { id: 2, label: 'Car', confidence: 0.87, trackId: 5 },
-  { id: 3, label: 'Person', confidence: 0.91, trackId: 14 },
-  { id: 4, label: 'Bicycle', confidence: 0.78, trackId: 8 },
-];
-
-const mockAlerts = [
-  { id: 1, type: 'warning', message: 'Crowd threshold exceeded (>5 persons)', time: '2 min ago' },
-  { id: 2, type: 'danger', message: 'Restricted zone intrusion detected', time: '5 min ago' },
-  { id: 3, type: 'info', message: 'New device connected: Camera_02', time: '12 min ago' },
-];
-
-const statCards = [
-  { label: 'Live Objects', value: '12', icon: '◉', color: 'var(--success)' },
-  { label: 'Active Tracks', value: '8', icon: '⟐', color: 'var(--accent)' },
-  { label: 'Events Today', value: '47', icon: '⚡', color: 'var(--warning)' },
-  { label: 'Cameras Online', value: '3/4', icon: '◈', color: 'var(--info)' },
-];
+import { useVisionStore } from '../stores/visionStore';
+import { useEventStore } from '../stores/eventStore';
 
 export default function Dashboard() {
-  const [isLive, setIsLive] = useState(true);
+  const { detections, fps, latency, isProcessing, frameCount } = useVisionStore();
+  const { events, activeAlerts, acknowledgeEvent } = useEventStore();
+
+  // Derive live stats from stores (reactive)
+  const statCards = [
+    { label: 'Live Objects', value: String(detections.length), icon: '◉', color: 'var(--success)' },
+    { label: 'Active Tracks', value: String(new Set(detections.filter(d => d.trackId).map(d => d.trackId)).size), icon: '⟐', color: 'var(--accent)' },
+    { label: 'Events Today', value: String(events.length), icon: '⚡', color: 'var(--warning)' },
+    { label: 'Active Alerts', value: String(activeAlerts), icon: '◈', color: activeAlerts > 0 ? 'var(--danger)' : 'var(--info)' },
+  ];
+
+  // Recent 4 alerts
+  const recentAlerts = events.slice(0, 4);
 
   return (
     <div className="dashboard">
@@ -70,61 +65,67 @@ export default function Dashboard() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{
                   width: 8, height: 8, borderRadius: '50%',
-                  background: isLive ? 'var(--success)' : 'var(--danger)',
-                  boxShadow: isLive ? '0 0 12px var(--success)' : 'none',
-                  animation: isLive ? 'pulse-glow 2s infinite' : 'none',
+                  background: isProcessing ? 'var(--success)' : 'var(--danger)',
+                  boxShadow: isProcessing ? '0 0 12px var(--success)' : 'none',
+                  animation: isProcessing ? 'pulse-glow 2s infinite' : 'none',
                 }} />
                 <span className="font-semibold">Camera_01 — Main Entrance</span>
               </div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <span className="badge badge-success mono" style={{ fontSize: '0.7rem' }}>
-                  30 FPS
+                  {fps > 0 ? `${fps.toFixed(0)} FPS` : '— FPS'}
                 </span>
                 <span className="badge badge-info mono" style={{ fontSize: '0.7rem' }}>
-                  12ms
+                  {latency > 0 ? `${latency.toFixed(0)}ms` : '—ms'}
+                </span>
+                <span className="badge mono" style={{ fontSize: '0.7rem', background: 'var(--bg-tertiary)' }}>
+                  F#{frameCount}
                 </span>
               </div>
             </div>
 
-            {/* Feed Placeholder */}
+            {/* Feed Area */}
             <div style={{
               height: 420, display: 'flex', alignItems: 'center', justifyContent: 'center',
               background: 'linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary))',
               position: 'relative',
             }}>
-              <div style={{ textAlign: 'center', opacity: 0.5 }}>
-                <div style={{ fontSize: 48, marginBottom: 12 }}>📹</div>
-                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                  Live camera feed will render here
-                </p>
-                <p className="text-xs mono" style={{ color: 'var(--text-tertiary)', marginTop: 4 }}>
-                  WebSocket → Canvas → BoundingBox overlay
-                </p>
-              </div>
-
-              {/* Mock detection boxes */}
-              <div style={{
-                position: 'absolute', top: 60, left: 80,
-                width: 100, height: 160, border: '2px solid var(--success)',
-                borderRadius: 4,
-              }}>
-                <span style={{
-                  position: 'absolute', top: -20, left: 0,
-                  background: 'var(--success)', color: '#000', fontSize: 10,
-                  padding: '2px 6px', borderRadius: 4, fontWeight: 600,
-                }}>ID:12 | Person 94%</span>
-              </div>
-              <div style={{
-                position: 'absolute', top: 120, right: 120,
-                width: 140, height: 80, border: '2px solid #00e5ff',
-                borderRadius: 4,
-              }}>
-                <span style={{
-                  position: 'absolute', top: -20, left: 0,
-                  background: '#00e5ff', color: '#000', fontSize: 10,
-                  padding: '2px 6px', borderRadius: 4, fontWeight: 600,
-                }}>ID:5 | Car 87%</span>
-              </div>
+              {detections.length === 0 ? (
+                <div style={{ textAlign: 'center', opacity: 0.5 }}>
+                  <div style={{ fontSize: 48, marginBottom: 12 }}>📹</div>
+                  <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                    Waiting for detections...
+                  </p>
+                  <p className="text-xs mono" style={{ color: 'var(--text-tertiary)', marginTop: 4 }}>
+                    WebSocket → Pipeline → BoundingBox overlay
+                  </p>
+                </div>
+              ) : (
+                /* Render detection boxes dynamically */
+                detections.slice(0, 8).map((d, i) => (
+                  <div
+                    key={d.id}
+                    style={{
+                      position: 'absolute',
+                      top: 40 + (i * 40) % 300,
+                      left: 60 + (i * 120) % 500,
+                      width: 100 + (i % 3) * 30,
+                      height: 80 + (i % 2) * 60,
+                      border: `2px solid ${d.class === 'person' ? 'var(--success)' : 'var(--accent)'}`,
+                      borderRadius: 4,
+                    }}
+                  >
+                    <span style={{
+                      position: 'absolute', top: -20, left: 0,
+                      background: d.class === 'person' ? 'var(--success)' : 'var(--accent)',
+                      color: '#000', fontSize: 10,
+                      padding: '2px 6px', borderRadius: 4, fontWeight: 600,
+                    }}>
+                      {d.trackId ? `ID:${d.trackId} | ` : ''}{d.class} {(d.confidence * 100).toFixed(0)}%
+                    </span>
+                  </div>
+                ))
+              )}
             </div>
 
             {/* Feed Footer */}
@@ -132,9 +133,11 @@ export default function Dashboard() {
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               padding: '12px 20px', borderTop: '1px solid var(--border)',
             }}>
-              <GlowButton size="sm" onClick={() => setIsLive(!isLive)}>
-                {isLive ? '⏸ Pause' : '▶ Resume'}
-              </GlowButton>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                  {detections.length} objects detected
+                </span>
+              </div>
               <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
                 Resolution: 1280×720 | Mode: Balanced
               </span>
@@ -153,42 +156,75 @@ export default function Dashboard() {
             <GlassCard>
               <h3 className="font-semibold" style={{ marginBottom: 12 }}>Active Detections</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {mockDetections.map((d) => (
-                  <div key={d.id} className="glass-subtle" style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    padding: '10px 14px', borderRadius: 'var(--radius-sm)',
-                  }}>
-                    <div>
-                      <span className="font-medium">{d.label}</span>
-                      <span className="text-xs mono" style={{ color: 'var(--text-tertiary)', marginLeft: 8 }}>
-                        ID:{d.trackId}
-                      </span>
+                {detections.length === 0 ? (
+                  <p className="text-sm" style={{ opacity: 0.5, textAlign: 'center', padding: 20 }}>
+                    No detections yet
+                  </p>
+                ) : (
+                  detections.slice(0, 8).map((d) => (
+                    <div key={d.id} className="glass-subtle" style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      padding: '10px 14px', borderRadius: 'var(--radius-sm)',
+                    }}>
+                      <div>
+                        <span className="font-medium">{d.class}</span>
+                        {d.trackId && (
+                          <span className="text-xs mono" style={{ color: 'var(--text-tertiary)', marginLeft: 8 }}>
+                            ID:{d.trackId}
+                          </span>
+                        )}
+                      </div>
+                      <span className="badge badge-accent">{(d.confidence * 100).toFixed(0)}%</span>
                     </div>
-                    <span className="badge badge-accent">{(d.confidence * 100).toFixed(0)}%</span>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </GlassCard>
           </motion.div>
 
-          {/* Alerts */}
+          {/* Alerts — from eventStore */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.4 }}
           >
             <GlassCard>
-              <h3 className="font-semibold" style={{ marginBottom: 12 }}>Recent Alerts</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <h3 className="font-semibold">Recent Alerts</h3>
+                {activeAlerts > 0 && (
+                  <span className="badge badge-danger">{activeAlerts} active</span>
+                )}
+              </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {mockAlerts.map((a) => (
-                  <div key={a.id} className="glass-subtle" style={{
-                    padding: '10px 14px', borderRadius: 'var(--radius-sm)',
-                    borderLeft: `3px solid var(--${a.type === 'danger' ? 'danger' : a.type === 'warning' ? 'warning' : 'info'})`,
-                  }}>
-                    <p className="text-sm font-medium">{a.message}</p>
-                    <p className="text-xs" style={{ color: 'var(--text-tertiary)', marginTop: 4 }}>{a.time}</p>
-                  </div>
-                ))}
+                {recentAlerts.length === 0 ? (
+                  <p className="text-sm" style={{ opacity: 0.5, textAlign: 'center', padding: 20 }}>
+                    No alerts
+                  </p>
+                ) : (
+                  recentAlerts.map((a) => (
+                    <div
+                      key={a.id}
+                      className="glass-subtle"
+                      style={{
+                        padding: '10px 14px', borderRadius: 'var(--radius-sm)',
+                        borderLeft: `3px solid var(--${a.severity === 'danger' ? 'danger' : a.severity === 'warning' ? 'warning' : 'info'})`,
+                        opacity: a.acknowledged ? 0.5 : 1,
+                        cursor: a.acknowledged ? 'default' : 'pointer',
+                      }}
+                      onClick={() => !a.acknowledged && acknowledgeEvent(a.id)}
+                    >
+                      <p className="text-sm font-medium">{a.message}</p>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+                        <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                          {a.camera}
+                        </span>
+                        <span className="text-xs mono" style={{ color: 'var(--text-tertiary)' }}>
+                          {new Date(a.timestamp).toLocaleTimeString()}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </GlassCard>
           </motion.div>
