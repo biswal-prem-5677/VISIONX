@@ -12,6 +12,7 @@ from __future__ import annotations
 import asyncio
 import time
 import threading
+from concurrent.futures import ThreadPoolExecutor
 from collections import defaultdict
 from typing import Any, Optional
 
@@ -70,6 +71,7 @@ class EventEngine:
         )
         self._total_events: int = 0
         self._dispatch_queue: list[tuple[str, Event, dict]] = []
+        self._executor = ThreadPoolExecutor(max_workers=8, thread_name_prefix="vx-action")
 
         logger.info("Event Engine (Jarvis Core) initialized")
 
@@ -136,14 +138,8 @@ class EventEngine:
         event: Event,
         context: dict[str, Any],
     ) -> None:
-        """Dispatch action in a background thread to avoid blocking pipeline."""
-        thread = threading.Thread(
-            target=self._dispatch_action,
-            args=(action_name, event, context),
-            daemon=True,
-            name=f"action-{action_name}",
-        )
-        thread.start()
+        """Submit action to thread pool (bounded, non-blocking)."""
+        self._executor.submit(self._dispatch_action, action_name, event, context)
 
     def _dispatch_action(
         self,
