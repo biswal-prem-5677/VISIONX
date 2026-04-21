@@ -1,0 +1,124 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# VisionX — Full Stack Docker Compose
+# ═══════════════════════════════════════════════════════════════════════════
+# Usage:
+#   docker-compose up -d              # Start all services
+#   docker-compose up -d server       # Start API only
+#   docker-compose logs -f server     # Follow API logs
+#   docker-compose down               # Stop all
+# ═══════════════════════════════════════════════════════════════════════════
+
+services:
+  # ─── Frontend (React + Nginx) ────────────────────────────────────────
+  client:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.client
+    ports:
+      - "3000:80"
+    depends_on:
+      server:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - visionx
+
+  # ─── API Server (FastAPI) ────────────────────────────────────────────
+  server:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.server
+    ports:
+      - "8000:8000"
+    environment:
+      - VISIONX_ENV=production
+      - DATABASE_URL=postgresql://visionx:visionx@postgres:5432/visionx
+      - REDIS_URL=redis://redis:6379/0
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-change-me-in-production}
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:5173
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      - POSTHOG_API_KEY=${POSTHOG_API_KEY:-}
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - PINECONE_API_KEY=${PINECONE_API_KEY:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - visionx
+
+  # ─── Edge Node (Detection Pipeline) ─────────────────────────────────
+  edge:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.edge
+    environment:
+      - VISIONX_ENV=production
+      - CLOUD_API_URL=http://server:8000
+      - DEVICE_ID=${EDGE_DEVICE_ID:-edge-001}
+    depends_on:
+      server:
+        condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 512M
+    networks:
+      - visionx
+
+  # ─── PostgreSQL ──────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: visionx
+      POSTGRES_USER: visionx
+      POSTGRES_PASSWORD: visionx
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U visionx"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - visionx
+
+  # ─── Redis ───────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - visionx
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  visionx:
+    driver: bridge
