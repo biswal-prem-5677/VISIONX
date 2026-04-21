@@ -2,15 +2,22 @@
  * VisionX — Vision WebSocket Hook
  * Bridges the backend WebSocket stream to Zustand stores.
  * Handles: detection frames, events, system status.
+ * 
+ * PERFORMANCE: Detection updates throttled to ~15fps to prevent
+ * React re-render flooding under high camera volume.
+ * Event/alert messages are NEVER throttled (always immediate).
  */
 
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { useWebSocket } from './useWebSocket';
 import { useVisionStore } from '../stores/visionStore';
 import { useEventStore } from '../stores/eventStore';
 import { useOfflineStore } from '../stores/offlineStore';
 
 const WS_URL = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws/vision`;
+
+/** Minimum ms between detection store updates (~15fps) */
+const DETECTION_THROTTLE_MS = 66;
 
 export function useVisionStream(url?: string) {
   const setDetections = useVisionStore((s) => s.setDetections);
@@ -21,6 +28,9 @@ export function useVisionStream(url?: string) {
   const addEvent = useEventStore((s) => s.addEvent);
   const setOnline = useOfflineStore((s) => s.setOnline);
 
+  // Throttle ref — persists across renders without causing re-render
+  const lastDetectionUpdate = useRef(0);
+
   const handleMessage = useCallback(
     (data: any) => {
       if (!data || typeof data !== 'object') return;
@@ -28,11 +38,20 @@ export function useVisionStream(url?: string) {
       switch (data.type) {
         case 'frame':
         case 'detection': {
-          // Pipeline frame result
+          // Throttle detection updates to prevent UI freeze
+          const now = Date.now();
+          if (now - lastDetectionUpdate.current < DETECTION_THROTTLE_MS) {
+            // Still count frame even if we skip the store update
+            incrementFrame();
+            return;
+          }
+          lastDetectionUpdate.current = now;
+
+          // Pipeline frame result — update stores
           if (Array.isArray(data.detections)) {
             setDetections(
               data.detections.map((d: any, i: number) => ({
-                id: d.id || `det-${Date.now()}-${i}`,
+                id: d.id || `det-${now}-${i}`,
                 class: d.class_name || d.class || 'unknown',
                 confidence: d.confidence || 0,
                 bbox: d.bbox
@@ -52,7 +71,7 @@ export function useVisionStream(url?: string) {
 
         case 'event':
         case 'alert': {
-          // Decision engine event
+          // Events are NEVER throttled — always immediate
           addEvent({
             type: data.event_type || data.type || 'alert',
             severity: data.severity === 'critical' || data.severity === 'emergency'
