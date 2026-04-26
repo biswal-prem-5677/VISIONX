@@ -13,7 +13,6 @@ interface SageProps extends Omit<CharacterProps, 'primaryColor' | 'secondaryColo
 
 export function Sage(props: SageProps) {
   const auraRef = useRef<Mesh>(null);
-  const leafRefs = useRef<Mesh[]>([]);
   const leafGroupRef = useRef<Group>(null);
 
   useFrame(({ clock }) => {

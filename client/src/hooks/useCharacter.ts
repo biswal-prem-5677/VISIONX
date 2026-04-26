@@ -9,7 +9,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { useCharacterStore, THEME_TO_ARCHETYPE } from '../stores/characterStore';
 import { useThemeStore } from '../stores/themeStore';
 import { useGaze } from './useGaze';
-import type { Expression, Gesture, IdleState } from '../stores/characterStore';
+
 
 const IDLE_TIMEOUT = 30_000;      // 30s → idle
 const BORED_TIMEOUT = 50_000;     // 50s → bored
@@ -95,7 +95,7 @@ export function useCharacter() {
     }, 2500);
   }, [setGesture, setExpression]);
 
-  const triggerPoint = useCallback((direction?: 'left' | 'right' | 'up') => {
+  const triggerPoint = useCallback((_direction?: 'left' | 'right' | 'up') => {
     setGesture('point');
     setTimeout(() => setGesture('none'), 2000);
   }, [setGesture]);

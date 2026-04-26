@@ -6,7 +6,7 @@
 import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import type { Mesh, Group } from 'three';
+import type { Mesh } from 'three';
 import { CharacterModel, type CharacterProps } from '../CharacterModel';
 
 interface PilotProps extends Omit<CharacterProps, 'primaryColor' | 'secondaryColor' | 'emissiveColor'> {}

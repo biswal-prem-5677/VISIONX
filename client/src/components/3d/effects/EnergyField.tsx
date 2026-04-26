@@ -18,7 +18,7 @@ interface EnergyFieldProps {
 }
 
 export function EnergyField({
-  color, intensity = 0.15, reactive = true, pulseSpeed = 1,
+  color, intensity = 0.15, reactive: _reactive = true, pulseSpeed = 1,
 }: EnergyFieldProps) {
   const fieldRef = useRef<Mesh>(null);
   const innerRef = useRef<Mesh>(null);

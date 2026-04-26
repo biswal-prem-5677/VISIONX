@@ -29,7 +29,7 @@ export function ThemeTransition({
     }
   }, [isTransitioning]);
 
-  useFrame(({ clock }) => {
+  useFrame(() => {
     if (!active || !groupRef.current) return;
 
     progressRef.current += 0.02;

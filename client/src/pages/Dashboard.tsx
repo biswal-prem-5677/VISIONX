@@ -4,10 +4,10 @@
  * Wired to visionStore + eventStore via WebSocket
  */
 
-import { useEffect } from 'react';
+
 import { motion } from 'framer-motion';
 import { GlassCard } from '../components/ui/GlassCard';
-import { GlowButton } from '../components/ui/GlowButton';
+
 import { useVisionStore } from '../stores/visionStore';
 import { useEventStore } from '../stores/eventStore';
 
