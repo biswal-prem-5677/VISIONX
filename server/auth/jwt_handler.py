@@ -10,10 +10,9 @@ from __future__ import annotations
 import os
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
-from uuid import UUID
 
 from loguru import logger
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 class TokenPayload(BaseModel):

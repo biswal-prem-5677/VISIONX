@@ -4,15 +4,13 @@ VisionX — Platform API Tests
 Unit tests for auth, RBAC, billing, rate limiting, and platform services.
 """
 
-import time
 
 import pytest
 
 from server.auth.jwt_handler import JWTHandler
-from server.auth.rbac import RBACChecker, Permission, UserRole
+from server.auth.rbac import RBACChecker, Permission
 from server.auth.device_auth import DeviceAuthManager
 from server.auth.admin_takeover import AdminTakeover
-from server.billing.stripe_service import PLANS
 from server.billing.feature_gates import FeatureGate
 from server.api.middleware.rate_limiter import RateLimiter
 from server.api.middleware.abuse_detector import AbuseDetector

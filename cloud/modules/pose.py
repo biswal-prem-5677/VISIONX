@@ -7,7 +7,6 @@ Uses MediaPipe or YOLO-Pose for keypoint estimation.
 
 from __future__ import annotations
 
-from typing import Any, Optional
 
 import numpy as np
 from loguru import logger

@@ -9,7 +9,6 @@ from __future__ import annotations
 import hashlib
 import secrets
 import time
-from typing import Optional
 
 from loguru import logger
 from pydantic import BaseModel, Field

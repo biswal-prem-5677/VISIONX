@@ -7,7 +7,6 @@ Generate usage reports for billing and analytics.
 from __future__ import annotations
 
 from datetime import datetime, timezone, timedelta
-from typing import Optional
 from pydantic import BaseModel
 from loguru import logger
 

@@ -6,7 +6,7 @@ CRUD endpoints for notification management.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime

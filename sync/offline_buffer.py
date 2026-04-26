@@ -8,12 +8,10 @@ Implements WAL-style persistence for crash safety.
 
 from __future__ import annotations
 
-import json
 import os
-import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Optional
 from uuid import uuid4
 
 from loguru import logger

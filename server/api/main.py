@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import time
 from contextlib import asynccontextmanager
-from typing import Any
 
 from loguru import logger
 
@@ -138,13 +137,13 @@ async def health_check():
 # Import and register route modules
 # ============================================
 
-from server.api.routes.auth import router as auth_router
-from server.api.routes.vision import router as vision_router
-from server.api.routes.events import router as events_router
-from server.api.routes.devices import router as devices_router
-from server.api.routes.analytics import router as analytics_router
-from server.api.routes.admin import router as admin_router
-from server.api.routes.gdpr import router as gdpr_router
+from server.api.routes.auth import router as auth_router  # noqa: E402
+from server.api.routes.vision import router as vision_router  # noqa: E402
+from server.api.routes.events import router as events_router  # noqa: E402
+from server.api.routes.devices import router as devices_router  # noqa: E402
+from server.api.routes.analytics import router as analytics_router  # noqa: E402
+from server.api.routes.admin import router as admin_router  # noqa: E402
+from server.api.routes.gdpr import router as gdpr_router  # noqa: E402
 
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["Authentication"])
 app.include_router(vision_router, prefix="/api/v1/vision", tags=["Vision"])

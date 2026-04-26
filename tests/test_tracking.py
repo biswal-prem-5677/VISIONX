@@ -4,11 +4,10 @@ VisionX — Tracking Unit Tests
 Tests for the tracker and tracking module using synthetic detections.
 """
 
-import pytest
 
 from edge.core.tracker import Tracker, _iou
 from edge.modules.tracking import TrackingModule
-from shared.models import BoundingBox, Detection, TrackState
+from shared.models import BoundingBox, Detection
 
 
 def _make_detection(x1, y1, x2, y2, cls="person", conf=0.9) -> Detection:

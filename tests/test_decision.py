@@ -4,9 +4,7 @@ VisionX — Decision Engine Tests
 Unit tests for the rule-based decision engine.
 """
 
-import time
 
-import pytest
 
 from decision.engine import DecisionEngine
 from decision.rules import (

@@ -13,13 +13,13 @@ import cv2
 import numpy as np
 from loguru import logger
 
-from shared.models import BoundingBox, Detection, ROIZone
+from shared.models import Detection, ROIZone
 
 
 class ROIEngine:
     """
     Region of Interest engine.
-    
+
     Manages polygon zones on the video frame. Used to:
         - Filter detections to only those within a zone
         - Count objects per zone
@@ -60,12 +60,12 @@ class ROIEngine:
     ) -> list[Detection]:
         """
         Filter detections to only those within ROI zones.
-        
+
         Args:
             detections: All detections from the detector
             zone_id: If provided, filter to a specific zone only.
                      If None, filter to any enabled zone.
-                     
+
         Returns:
             Detections whose center falls within the specified zone(s)
         """
@@ -118,11 +118,11 @@ class ROIEngine:
     def create_zone_mask(self, zone: ROIZone, frame_shape: tuple) -> np.ndarray:
         """
         Create a binary mask for a zone (for visualization or masking).
-        
+
         Args:
             zone: The ROI zone
             frame_shape: (height, width, channels) of the frame
-            
+
         Returns:
             Binary mask (0 or 255)
         """

@@ -6,10 +6,8 @@ Real-time WebSocket streaming for live detection data.
 
 from __future__ import annotations
 
-import asyncio
-import json
 import time
-from typing import Any, Optional
+from typing import Any
 
 from loguru import logger
 

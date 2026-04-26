@@ -7,7 +7,7 @@ OAuth2 provider management for Google, GitHub, etc.
 from __future__ import annotations
 
 import os
-from typing import Any, Optional
+from typing import Optional
 
 from loguru import logger
 from pydantic import BaseModel

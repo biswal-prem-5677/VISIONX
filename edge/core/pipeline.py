@@ -21,12 +21,11 @@ from edge.config.edge_config import EdgeConfig
 from edge.core.camera import Camera
 from edge.core.preprocessor import Preprocessor, PreprocessConfig, PreprocessStep
 from edge.core.threading_engine import ThreadingEngine
-from edge.core.tracker import Tracker
 from edge.modules.counting import Counter
 from edge.modules.detection import Detector
 from edge.modules.tracking import TrackingModule
 from edge.roi.roi_engine import ROIEngine
-from shared.models import Detection, FrameResult, ROIZone
+from shared.models import Detection, FrameResult
 from visualization.overlay import Overlay
 from decision.engine import DecisionEngine
 from decision.governance import GovernanceValidator
@@ -36,7 +35,7 @@ from events.event_engine import EventEngine
 class Pipeline:
     """
     Master processing pipeline for the VisionX edge engine.
-    
+
     Orchestrates all components in the correct order:
         1. Camera capture
         2. Preprocessing (CLAHE, denoise, resize)
@@ -133,11 +132,11 @@ class Pipeline:
     def _process_frame(self, frame: np.ndarray, frame_id: int) -> dict:
         """
         Process a single frame through the full AI pipeline.
-        
+
         Args:
             frame: Raw BGR frame from camera
             frame_id: Sequential frame identifier
-            
+
         Returns:
             Processing result dict
         """
@@ -277,7 +276,7 @@ class Pipeline:
     def run(self) -> None:
         """
         Run the pipeline (blocking).
-        
+
         This is the main entry point. Starts camera capture,
         runs the processing loop, and handles graceful shutdown.
         """

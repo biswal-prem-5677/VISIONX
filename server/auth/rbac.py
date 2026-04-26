@@ -7,10 +7,7 @@ Defines user roles and permissions for access control.
 from __future__ import annotations
 
 from enum import Enum
-from typing import Optional
 
-from loguru import logger
-from pydantic import BaseModel, Field
 
 
 class UserRole(str, Enum):

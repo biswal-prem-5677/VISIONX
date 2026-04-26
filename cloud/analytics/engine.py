@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import time
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, Optional
 
 from loguru import logger

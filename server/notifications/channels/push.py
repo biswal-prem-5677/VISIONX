@@ -40,12 +40,6 @@ class PushChannel:
 
         try:
             # In production: use pywebpush library
-            payload = {
-                "title": title,
-                "body": body,
-                "icon": icon or "/icon-192.png",
-                "url": url or "/",
-            }
             logger.info(f"Push sent to {user_id}: {title}")
             return True
         except Exception as e:

@@ -19,7 +19,7 @@ from loguru import logger
 class Camera:
     """
     Universal camera input engine.
-    
+
     Supports:
         - USB Webcam: Camera("0") or Camera(0)
         - RTSP Stream: Camera("rtsp://user:pass@ip:554/stream")
@@ -136,7 +136,7 @@ class Camera:
     def read(self) -> tuple[bool, Optional[np.ndarray], int]:
         """
         Read the latest frame.
-        
+
         Returns:
             (success, frame, frame_id)
         """

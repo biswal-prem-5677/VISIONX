@@ -10,7 +10,6 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Optional
 
-import numpy as np
 from loguru import logger
 
 from shared.models import Detection, ROIZone
@@ -19,7 +18,7 @@ from shared.models import Detection, ROIZone
 class Counter:
     """
     Object counting engine.
-    
+
     Features:
         - Global object count by class
         - Per-ROI zone counting
@@ -29,13 +28,13 @@ class Counter:
     def __init__(self):
         # Current frame counts
         self._current_counts: dict[str, int] = defaultdict(int)
-        
+
         # Cumulative counts per class
         self._total_counts: dict[str, int] = defaultdict(int)
-        
+
         # Per-zone counts
         self._zone_counts: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
-        
+
         # Line crossing state
         self._line_crossings: dict[str, int] = {"in": 0, "out": 0}
         self._prev_positions: dict[int, tuple[float, float]] = {}
@@ -49,11 +48,11 @@ class Counter:
     ) -> dict:
         """
         Count objects in the current frame.
-        
+
         Args:
             detections: List of detections (with or without track_id)
             roi_zones: Optional ROI zones for zone-based counting
-            
+
         Returns:
             Count summary dict
         """
@@ -115,11 +114,11 @@ class Counter:
     ) -> dict[str, int]:
         """
         Count directional line crossings (up = out, down = in).
-        
+
         Args:
             detections: Tracked detections (must have track_id)
             line_y: Y-coordinate of the counting line
-            
+
         Returns:
             {"in": count, "out": count}
         """

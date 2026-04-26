@@ -43,10 +43,10 @@ class PreprocessConfig:
 class Preprocessor:
     """
     Image preprocessing engine.
-    
+
     Applies a configurable pipeline of enhancement steps
     to each frame before AI inference.
-    
+
     Available steps:
         - resize: Scale to target input size
         - clahe: Contrast Limited Adaptive Histogram Equalization
@@ -67,10 +67,10 @@ class Preprocessor:
     def process(self, frame: np.ndarray) -> np.ndarray:
         """
         Apply the full preprocessing pipeline to a frame.
-        
+
         Args:
             frame: BGR image (numpy array)
-            
+
         Returns:
             Processed BGR image
         """

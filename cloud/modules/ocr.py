@@ -7,7 +7,6 @@ Uses EasyOCR or Tesseract for text extraction.
 
 from __future__ import annotations
 
-from typing import Any, Optional
 
 import numpy as np
 from loguru import logger
@@ -25,7 +24,7 @@ class OCRResult(BaseModel):
 class OCRModule:
     """
     Optical Character Recognition module.
-    
+
     Extracts text from images using EasyOCR.
     Runs on cloud for accuracy — too heavy for edge.
     """

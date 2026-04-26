@@ -10,15 +10,16 @@ import threading
 import statistics
 import sys
 import os
+import loguru
 
 # Ensure project root is in path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from shared.models import Detection, BoundingBox, FrameResult
-from decision.engine import DecisionEngine
-from decision.rules import Rule, RuleCondition, RuleField, RuleOperator, RuleSeverity
-from decision.governance import GovernanceValidator
-from events.event_engine import EventEngine
+from shared.models import Detection, BoundingBox, FrameResult  # noqa: E402
+from decision.engine import DecisionEngine  # noqa: E402
+from decision.rules import Rule, RuleCondition, RuleField, RuleOperator, RuleSeverity  # noqa: E402
+from decision.governance import GovernanceValidator  # noqa: E402
+from events.event_engine import EventEngine  # noqa: E402
 
 
 # ============================================
@@ -29,15 +30,15 @@ FRAMES_PER_CAMERA = 50       # 50 frames per camera
 DETECTIONS_PER_FRAME = 5     # 5 objects per frame
 TOTAL_FRAMES = NUM_CAMERAS * FRAMES_PER_CAMERA  # 5000 frames total
 
-print(f"=" * 70)
-print(f"VisionX 100-Camera Load Simulation")
-print(f"=" * 70)
+print("=" * 70)
+print("VisionX 100-Camera Load Simulation")
+print("=" * 70)
 print(f"Cameras:       {NUM_CAMERAS}")
 print(f"Frames/cam:    {FRAMES_PER_CAMERA}")
 print(f"Objects/frame: {DETECTIONS_PER_FRAME}")
 print(f"Total frames:  {TOTAL_FRAMES}")
 print(f"Total events:  ~{TOTAL_FRAMES} (worst case)")
-print(f"=" * 70)
+print("=" * 70)
 
 
 # ============================================
@@ -117,7 +118,6 @@ for r in rules:
     engine.add_rule(r)
 
 # Suppress loguru for benchmarks
-import loguru
 loguru.logger.disable("decision")
 loguru.logger.disable("events")
 loguru.logger.disable("decision.governance")
@@ -246,10 +246,10 @@ def camera_worker(cam_id: int, num_frames: int):
     """Simulate one camera processing frames."""
     local_times = []
     local_events = 0
-    
+
     for frame_num in range(num_frames):
         t0 = time.perf_counter()
-        
+
         # Create detections
         dets = create_mock_detections(DETECTIONS_PER_FRAME, cam_id, frame_num)
         fr = FrameResult(
@@ -258,23 +258,23 @@ def camera_worker(cam_id: int, num_frames: int):
             source_id=f"cam_{cam_id}",
             metadata={"counts": {"total_objects": len(dets)}},
         )
-        
+
         # Decision
         e2e_engine._last_triggered.clear()
         results = e2e_engine.evaluate(fr)
-        
+
         # Governance
         if results:
             results = e2e_gov.validate(results, context={"zone": "", "max_confidence": 0.85})
-        
+
         # Events
         if results:
             events = e2e_event.process_rule_results(results)
             local_events += len(events)
-        
+
         elapsed = (time.perf_counter() - t0) * 1000
         local_times.append(elapsed)
-    
+
     with lock:
         thread_times.extend(local_times)
         thread_events.append(local_events)
@@ -349,9 +349,9 @@ ws_msgs_per_sec = total_e2e_frames / e2e_total
 print(f"\n  WebSocket load:         {ws_msgs_per_sec:.0f} msgs/sec")
 if ws_msgs_per_sec > 60:
     print(f"  ⚠️  UI RISK: >{ws_msgs_per_sec:.0f} msgs/sec may cause React re-render lag")
-    print(f"  FIX: Throttle WebSocket → store updates to 10-15fps with requestAnimationFrame")
+    print("  FIX: Throttle WebSocket → store updates to 10-15fps with requestAnimationFrame")
 else:
-    print(f"  ✅ UI safe: <60 msgs/sec")
+    print("  ✅ UI safe: <60 msgs/sec")
 
 print(f"\n{'=' * 70}")
 print("SIMULATION COMPLETE")

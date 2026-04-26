@@ -20,9 +20,8 @@ from decision.rules import (
     RuleField,
     RuleOperator,
     RuleResult,
-    RuleSeverity,
 )
-from shared.models import Detection, FrameResult
+from shared.models import FrameResult
 
 
 class DecisionEngine:
@@ -31,7 +30,7 @@ class DecisionEngine:
 
     Evaluates a set of rules against the current frame state.
     Manages cooldowns to prevent alert flooding.
-    
+
     Usage:
         engine = DecisionEngine()
         engine.add_rule(rule)

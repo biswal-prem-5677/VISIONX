@@ -9,11 +9,11 @@ from __future__ import annotations
 from typing import Any
 
 try:
-    from fastapi import APIRouter, HTTPException
+    from fastapi import APIRouter, HTTPException  # noqa: F401
 except ImportError:
     raise
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 router = APIRouter()
 

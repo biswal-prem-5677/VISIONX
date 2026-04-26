@@ -9,9 +9,6 @@ Event Types: Alert · Notification · Automation trigger · API call · Hardware
 
 from __future__ import annotations
 
-import asyncio
-import time
-import threading
 from concurrent.futures import ThreadPoolExecutor
 from collections import defaultdict
 from typing import Any, Optional

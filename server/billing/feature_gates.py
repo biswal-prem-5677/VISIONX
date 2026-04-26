@@ -6,7 +6,6 @@ Controls feature access based on subscription plan.
 
 from __future__ import annotations
 
-from typing import Optional
 
 from loguru import logger
 

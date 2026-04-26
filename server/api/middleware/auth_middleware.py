@@ -64,4 +64,3 @@ async def require_role(required_role: str):
             )
         return user
     return _check
-""", "Description": "JWT auth middleware for protecting FastAPI routes", "IsArtifact": false, "Overwrite": false, "TargetFile": "c:\\เอกสาร\\VISIONX\\server\\api\\middleware\\auth_middleware.py"}

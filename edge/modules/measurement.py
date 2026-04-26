@@ -13,14 +13,14 @@ from typing import Optional
 
 from loguru import logger
 
-from shared.models import BoundingBox, Detection
+from shared.models import Detection
 
 
 @dataclass
 class CalibrationConfig:
     """
     Calibration parameters for pixel-to-world conversion.
-    
+
     Attributes:
         focal_length_px: Focal length in pixels (camera-dependent)
         known_width_m: Known real-world width of reference object in meters
@@ -35,7 +35,7 @@ class CalibrationConfig:
 class Measurement:
     """
     Distance & area estimation from detected bounding boxes.
-    
+
     Features:
         - Estimate distance from camera to detected object
         - Calculate bounding box area in pixels
@@ -50,13 +50,13 @@ class Measurement:
     def estimate_distance(self, detection: Detection) -> float:
         """
         Estimate distance from camera to detected object (meters).
-        
+
         Uses the pinhole camera model:
             distance = (known_width * focal_length) / perceived_width_px
-        
+
         Args:
             detection: A Detection object
-            
+
         Returns:
             Estimated distance in meters
         """
@@ -75,13 +75,13 @@ class Measurement:
     ) -> float:
         """
         Estimate the distance between two detected objects in meters.
-        
+
         This is a rough pixel-space estimate, not true 3D distance.
-        
+
         Args:
             det_a: First detection
             det_b: Second detection
-            
+
         Returns:
             Estimated distance in meters
         """
@@ -106,7 +106,7 @@ class Measurement:
     def estimated_real_area(self, detection: Detection) -> float:
         """
         Estimate real-world bounding box area in square meters.
-        
+
         Uses the distance estimate to scale pixel area.
         """
         distance = self.estimate_distance(detection)
@@ -124,7 +124,7 @@ class Measurement:
     def measure_all(self, detections: list[Detection]) -> list[dict]:
         """
         Run all measurements on a list of detections.
-        
+
         Returns:
             List of measurement dicts per detection
         """

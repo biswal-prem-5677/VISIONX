@@ -5,11 +5,8 @@ Unit tests for the event engine and actions.
 """
 
 import json
-import tempfile
-from pathlib import Path
-from unittest.mock import MagicMock
+import time
 
-import pytest
 
 from decision.rules import RuleResult, RuleSeverity
 from events.event_engine import EventAction, EventEngine
@@ -87,6 +84,7 @@ class TestEventEngine:
         ]
 
         events = engine.process_rule_results(results)
+        time.sleep(0.05)  # Wait for ThreadPool dispatch
 
         assert len(events) == 1
         assert mock.call_count == 1
@@ -132,6 +130,7 @@ class TestEventEngine:
         ]
 
         engine.process_rule_results(results)
+        time.sleep(0.05)  # Wait for ThreadPool dispatch
 
         assert mock1.call_count == 1
         assert mock2.call_count == 1
@@ -172,6 +171,7 @@ class TestEventEngine:
         # Should not raise
         events = engine.process_rule_results(results)
         assert len(events) == 1
+        time.sleep(0.05)  # Wait for ThreadPool dispatch
 
         # Should record failure
         stats = engine.get_stats()

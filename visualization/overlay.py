@@ -19,7 +19,7 @@ from shared.models import Detection, FrameResult, ROIZone
 class Overlay:
     """
     Visualization overlay renderer.
-    
+
     Draws:
         - Bounding boxes (color-coded by class)
         - Class labels + confidence scores
@@ -59,13 +59,13 @@ class Overlay:
     ) -> np.ndarray:
         """
         Draw all overlays on a frame.
-        
+
         Args:
             frame: BGR image to draw on
             result: FrameResult with detections
             roi_zones: Optional ROI zones to display
             status_text: Optional status message
-            
+
         Returns:
             Frame with overlays drawn
         """

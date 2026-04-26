@@ -6,14 +6,13 @@ Event management API endpoints.
 
 from __future__ import annotations
 
-from typing import Any
 
 try:
     from fastapi import APIRouter, Query
 except ImportError:
     raise
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 router = APIRouter()
 

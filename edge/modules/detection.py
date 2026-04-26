@@ -8,7 +8,6 @@ Supports multiple model sizes and configurable class filtering.
 from __future__ import annotations
 
 import time
-from pathlib import Path
 from typing import Optional
 
 import numpy as np
@@ -21,7 +20,7 @@ from shared.models import BoundingBox, Detection
 class Detector:
     """
     YOLO-based object detector.
-    
+
     Uses Ultralytics YOLOv8 for inference. Supports:
         - Multiple model sizes: yolov8n/s/m/l/x
         - Class filtering (detect only specific objects)
@@ -85,10 +84,10 @@ class Detector:
     def detect(self, frame: np.ndarray) -> list[Detection]:
         """
         Run object detection on a single frame.
-        
+
         Args:
             frame: BGR image (numpy array)
-            
+
         Returns:
             List of Detection objects
         """

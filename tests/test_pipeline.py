@@ -4,7 +4,6 @@ VisionX — Pipeline Integration Tests
 End-to-end pipeline tests.
 """
 
-import pytest
 import numpy as np
 
 

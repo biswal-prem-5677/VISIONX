@@ -7,7 +7,6 @@ Redis-based rate limiting for API endpoints.
 from __future__ import annotations
 
 import time
-from typing import Optional
 
 from loguru import logger
 

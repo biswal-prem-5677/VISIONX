@@ -7,10 +7,9 @@ Aggregates system-wide data for admin god-mode dashboard.
 from __future__ import annotations
 
 import time
-from typing import Any
 
 from loguru import logger
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 class SystemHealth(BaseModel):
@@ -28,7 +27,7 @@ class SystemHealth(BaseModel):
 class AdminDashboardService:
     """
     Admin dashboard data aggregation.
-    
+
     Provides system-wide metrics, user stats,
     and health monitoring for the admin dashboard.
     """

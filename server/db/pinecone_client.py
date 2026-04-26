@@ -8,7 +8,7 @@ Used for face recognition, image search, and similarity.
 from __future__ import annotations
 
 import os
-from typing import Any, Optional
+from typing import Any
 
 from loguru import logger
 

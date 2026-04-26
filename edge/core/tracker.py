@@ -101,7 +101,7 @@ class _KalmanBoxTracker:
 class Tracker:
     """
     Multi-object tracker using IoU matching with Kalman prediction.
-    
+
     Assigns persistent unique IDs to detected objects and maintains
     tracks across frames, handling temporary occlusion.
     """
@@ -127,10 +127,10 @@ class Tracker:
     def update(self, detections: list[Detection]) -> list[Detection]:
         """
         Update tracker with new detections and return detections with track IDs.
-        
+
         Args:
             detections: List of Detection objects from the detector
-            
+
         Returns:
             Same detections with track_id assigned
         """

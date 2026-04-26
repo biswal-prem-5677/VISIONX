@@ -7,7 +7,7 @@ Knowledge base, ticket system, and onboarding.
 from __future__ import annotations
 
 import time
-from typing import Any, Optional
+from typing import Optional
 
 from loguru import logger
 from pydantic import BaseModel, Field

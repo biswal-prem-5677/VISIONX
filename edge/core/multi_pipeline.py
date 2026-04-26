@@ -7,7 +7,6 @@ Each camera gets its own processing thread with shared model inference.
 
 from __future__ import annotations
 
-import asyncio
 import threading
 import time
 from dataclasses import dataclass, field

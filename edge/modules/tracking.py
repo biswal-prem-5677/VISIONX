@@ -10,7 +10,6 @@ from __future__ import annotations
 
 from typing import Optional
 
-import numpy as np
 from loguru import logger
 
 from edge.core.tracker import Tracker
@@ -21,7 +20,7 @@ from shared.models import Detection, Track
 class TrackingModule:
     """
     High-level tracking module for the edge pipeline.
-    
+
     Wraps the core IoU tracker and adds:
         - Track filtering (only return confirmed tracks)
         - Direction estimation (up/down/left/right)
@@ -51,10 +50,10 @@ class TrackingModule:
     def update(self, detections: list[Detection]) -> list[Detection]:
         """
         Update tracks with new detections.
-        
+
         Args:
             detections: Raw detections from the detector
-            
+
         Returns:
             Detections with track_id assigned
         """

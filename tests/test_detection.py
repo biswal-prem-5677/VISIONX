@@ -4,8 +4,6 @@ VisionX — Detection Unit Tests
 Tests for the YOLO detection module using mock/sample data.
 """
 
-import numpy as np
-import pytest
 
 from shared.models import BoundingBox, Detection
 

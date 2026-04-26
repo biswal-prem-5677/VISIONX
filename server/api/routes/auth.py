@@ -6,10 +6,9 @@ Authentication endpoints: login, register, refresh, OAuth.
 
 from __future__ import annotations
 
-from typing import Any, Optional
 
 from loguru import logger
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 try:
     from fastapi import APIRouter, HTTPException, Header
@@ -17,7 +16,6 @@ except ImportError:
     raise
 
 from server.auth.jwt_handler import JWTHandler
-from server.auth.rbac import RBACChecker, Permission
 
 router = APIRouter()
 jwt_handler = JWTHandler()

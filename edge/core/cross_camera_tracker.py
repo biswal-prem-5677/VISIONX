@@ -7,7 +7,6 @@ Re-identifies objects/persons across different views using appearance features.
 
 from __future__ import annotations
 
-import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Optional

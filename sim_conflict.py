@@ -2,18 +2,19 @@
 VisionX — Conflicting Rules Simulation
 Traces: Rule A (trigger) vs Rule B (suppress) through full pipeline.
 """
-import sys, os
+import sys
+import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import loguru
 loguru.logger.remove()
 loguru.logger.add(sys.stdout, format="  [LOG] {message}", level="DEBUG")
 
-from shared.models import Detection, BoundingBox, FrameResult
-from decision.engine import DecisionEngine
-from decision.rules import Rule, RuleCondition, RuleField, RuleOperator, RuleSeverity
-from decision.governance import GovernanceValidator
-from events.event_engine import EventEngine
+from shared.models import Detection, BoundingBox, FrameResult  # noqa: E402
+from decision.engine import DecisionEngine  # noqa: E402
+from decision.rules import Rule, RuleCondition, RuleField, RuleOperator, RuleSeverity  # noqa: E402
+from decision.governance import GovernanceValidator  # noqa: E402
+from events.event_engine import EventEngine  # noqa: E402
 
 print("=" * 70)
 print("CONFLICTING RULES SIMULATION")
@@ -89,7 +90,7 @@ if len(results) < 2:
 print()
 print("== STAGE 2: GOVERNANCE VALIDATOR ==")
 print(f"Input: {len(results)} triggered rule(s)")
-print(f"Active policies: privacy_zones, biometric_consent, low_confidence_gate")
+print("Active policies: privacy_zones, biometric_consent, low_confidence_gate")
 
 approved = governance.validate(
     results,
@@ -140,9 +141,9 @@ rule_b2.priority = 1
 engine2.add_rule(rule_a2)
 engine2.add_rule(rule_b2)
 
-print(f"\nSwapped priorities:")
-print(f"  Rule A: priority=5 (was 1)")
-print(f"  Rule B: priority=1 (was 5)")
+print("\nSwapped priorities:")
+print("  Rule A: priority=5 (was 1)")
+print("  Rule B: priority=1 (was 5)")
 
 results2 = engine2.evaluate(frame)
 

@@ -7,7 +7,7 @@ Supports Lite (mobile), Balanced (laptop), and Max (GPU server) modes.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
 
 from shared.constants import (

@@ -24,7 +24,7 @@ class ThreadingEngine:
         1. Capture Thread — reads frames from camera
         2. Processing Thread — runs AI inference
         3. Output Thread — handles results (display, API, etc.)
-    
+
     Threads communicate via thread-safe queues.
     """
 
