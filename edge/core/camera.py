@@ -11,7 +11,10 @@ import time
 from threading import Event, Thread
 from typing import Optional
 
-import cv2
+try:
+    import cv2
+except ImportError:
+    cv2 = None  # type: ignore[assignment]
 import numpy as np
 from loguru import logger
 

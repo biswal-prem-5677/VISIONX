@@ -8,7 +8,7 @@ on:
 
 env:
   NODE_VERSION: '22'
-  PYTHON_VERSION: '3.13'
+  PYTHON_VERSION: '3.12'
 
 jobs:
   # ─── Python Backend ──────────────────────────────────────────────────
@@ -23,11 +23,12 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
+          cache-dependency-path: requirements-ci.txt
 
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r requirements-ci.txt
 
       - name: Run linter
         run: |
@@ -86,7 +87,7 @@ jobs:
       - name: Python dependency audit
         run: |
           pip install pip-audit
-          pip-audit -r requirements.txt || true
+          pip-audit -r requirements-ci.txt || true
 
       - name: Node dependency audit
         working-directory: client

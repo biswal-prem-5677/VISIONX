@@ -11,7 +11,10 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
 
-import cv2
+try:
+    import cv2
+except ImportError:
+    cv2 = None  # type: ignore[assignment]
 import numpy as np
 from loguru import logger
 
