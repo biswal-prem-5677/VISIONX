@@ -4,6 +4,26 @@
 
 ---
 
+## ⚠️ STATUS: NON-BINDING LONG-TERM VISION — NOT A WORK QUEUE
+
+**Read [MASTER_BLUEPRINT.md](MASTER_BLUEPRINT.md) instead for current reality.**
+
+This document is ~4,543 lines describing ~72 sections. An independent engineering
+review on 2026-08-02 ([ENGINEERING_REVIEW.md](ENGINEERING_REVIEW.md)) found:
+
+| Finding | Detail |
+|---|---|
+| **Scope** | Implementing this as written is **25–40 engineer-years**. A focused V1 is **10–14 engineer-months** |
+| **§51–§72** | ~2,400 lines (zero-trust SPIFFE mesh, data lineage, drift detection, hive fleet governance, simulation environments, SOC 2 automation) have **zero implementation** and describe infrastructure for a company ~100× this size |
+| **Status markers below** | The ✅ marks in this file mean *"a class exists."* They do **not** mean reachable, durable, or tested. Several ✅ items were unreachable dead code |
+| **Recommendation** | 47 features → 14 for V1; 13 features recommended for outright deletion |
+
+**Treat this file as an architecture reference and idea archive.** Do not derive
+sprint work from it. The authoritative, dependency-ordered plan lives in
+**MASTER_BLUEPRINT.md → Development Roadmap**.
+
+---
+
 ## Table of Contents — Build Status
 
 > ✅ = Code exists & implemented | ⚠️ = Partial/stub | ❌ = Not started | 📋 = Design only (no code needed)

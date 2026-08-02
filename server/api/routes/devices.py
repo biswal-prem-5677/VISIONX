@@ -2,19 +2,31 @@
 VisionX — Device Routes
 ===========================
 Device management API endpoints.
+
+Authorization
+-------------
+Reads require an authenticated caller; writes require
+``Permission.MANAGE_DEVICES``. Before this, every route here was fully
+unauthenticated — anyone who could reach the API could enumerate camera source
+URIs (which embed ``user:password@`` for RTSP) or delete a site's cameras.
 """
 
 from __future__ import annotations
 
 
 try:
-    from fastapi import APIRouter, HTTPException
+    from fastapi import APIRouter, Depends, HTTPException
 except ImportError:
     raise
 
 from pydantic import BaseModel
 
-router = APIRouter()
+from server.api.dependencies import get_current_user, require_permission
+from server.auth.rbac import Permission
+
+router = APIRouter(dependencies=[Depends(get_current_user)])
+
+_manage_devices = require_permission(Permission.MANAGE_DEVICES)
 
 # In-memory device store
 _devices: dict[str, dict] = {}
@@ -40,7 +52,11 @@ async def list_devices():
     return {"devices": list(_devices.values()), "total": len(_devices)}
 
 
-@router.post("/", response_model=DeviceResponse)
+@router.post(
+    "/",
+    response_model=DeviceResponse,
+    dependencies=[Depends(_manage_devices)],
+)
 async def register_device(req: DeviceCreateRequest):
     """Register a new camera/device."""
     import uuid
@@ -58,7 +74,7 @@ async def register_device(req: DeviceCreateRequest):
     return DeviceResponse(**device)
 
 
-@router.delete("/{device_id}")
+@router.delete("/{device_id}", dependencies=[Depends(_manage_devices)])
 async def remove_device(device_id: str):
     """Remove a device."""
     if device_id not in _devices:

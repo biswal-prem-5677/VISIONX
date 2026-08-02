@@ -2,6 +2,13 @@
 VisionX — GDPR Compliance Endpoints
 ========================================
 Data export, deletion, consent management (GDPR Articles 15-20).
+
+Authorization
+-------------
+Every route requires an authenticated caller. These endpoints act on "the data
+subject's own data" — without an identity there is no data subject, and an
+anonymous ``POST /gdpr/delete`` is an unauthenticated destructive operation.
+The subject identity now comes from the token, never from the request body.
 """
 
 from __future__ import annotations
@@ -9,10 +16,16 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
-router = APIRouter(prefix="/gdpr", tags=["gdpr"])
+from server.api.dependencies import CurrentUser, get_current_user
+
+router = APIRouter(
+    prefix="/gdpr",
+    tags=["gdpr"],
+    dependencies=[Depends(get_current_user)],
+)
 
 
 class DataExportRequest(BaseModel):
@@ -134,9 +147,10 @@ async def request_data_portability():
 # ─── Art.7: Consent Management ──────────────────────────────────────────
 
 @router.get("/consent")
-async def get_consent():
+async def get_consent(user: CurrentUser = Depends(get_current_user)):
     """Get current consent status for the authenticated user."""
     return ConsentRecord(
+        user_id=user.user_id,
         consent_version="1.0",
         updated_at=datetime.now(timezone.utc),
     )

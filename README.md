@@ -2,9 +2,20 @@
 
 > **"Jarvis for Vision"** — A system that doesn't just see. It understands, decides, and acts.
 
-**VisionX** is a production-grade distributed AI vision platform. It runs on any device — from Raspberry Pi to cloud GPUs. It detects objects, tracks them across cameras, makes autonomous decisions, and triggers actions automatically.
+**VisionX** is a distributed AI vision platform. It runs on any device — from Raspberry Pi to cloud GPUs. It detects objects, tracks them, evaluates rules, checks each action against a privacy policy, and then acts.
 
-**72-section architecture · 95 tests passing · 5 visual themes · 3D AI characters**
+**191 tests passing · edge-first architecture · governance-gated actions**
+
+> ### ⚠️ Project status: pre-production prototype
+>
+> The vision pipeline (detect → track → decide → govern → act) works and is tested.
+> The SaaS platform around it does **not** yet exist: **no database schema, no
+> multi-tenancy, no object storage, no durable job queue.** Nothing survives a restart.
+>
+> **Do not deploy this to production.** See **[MASTER_BLUEPRINT.md](MASTER_BLUEPRINT.md)**
+> for what is actually built, **[ENGINEERING_REVIEW.md](ENGINEERING_REVIEW.md)**
+> for the independent audit (verdict: 🟠 Requires Major Redesign), and
+> **[EXECUTION_TRACKER.md](EXECUTION_TRACKER.md)** for every known defect and its status.
 
 ---
 
@@ -56,7 +67,7 @@ cd VISIONX
 python -m venv .venv
 .\.venv\Scripts\activate        # Windows
 pip install -r requirements.txt
-python -m pytest tests/ -v      # Run tests (95 passing)
+python -m pytest tests/ -v      # Run tests (191 passing)
 ```
 
 ### Frontend
@@ -152,8 +163,12 @@ VISIONX/
 │   └── nginx.conf                # Production Nginx config
 │
 ├── .github/workflows/ci.yml     # GitHub Actions CI/CD
-├── tests/                        # 95 tests (pytest)
-├── implementation_plan.md        # 72-section master blueprint
+├── tests/                        # 191 tests (pytest, incl. HTTP + WebSocket)
+├── EXECUTION_RULES.md            # Binding rules for every change
+├── EXECUTION_TRACKER.md          # Defect log + run log
+├── MASTER_BLUEPRINT.md           # What is actually built
+├── ENGINEERING_REVIEW.md         # Independent audit
+├── implementation_plan.md        # 72-section vision doc (non-binding)
 └── README.md
 ```
 
@@ -183,18 +198,30 @@ VISIONX/
 
 ## 🗺️ Roadmap
 
-| Phase | Description | Status |
-|-------|-------------|--------|
-| **Phase 1** | Edge Engine Foundation | ✅ Complete |
-| **Phase 2** | Event & Decision Engine | ✅ Complete |
-| **Phase 3** | Platform (FastAPI + Auth + DB) | ✅ Complete |
-| **Phase 4** | Premium UI (React + Glassmorphism) | ✅ Complete |
-| **Phase 5** | 3D Characters & AI Avatars | ✅ Complete |
-| **Phase 6** | Sync & Multi-Device | ✅ Complete |
-| **Phase 7** | Hardening & Polish | ✅ Complete |
-| **Phase 8** | Global Deployment | ⬜ Next |
-| **Phase 9** | Intelligence Domains | ⬜ Planned |
-| **Phase 10** | MLOps & AI Agent | ⬜ Planned |
+A capability counts as **Done** only if it is *reachable* from the UI or a mounted
+route, *durable* across a restart, and *tested* through its real interface.
+
+| Capability | Status | Notes |
+|---|---|---|
+| Edge pipeline (detect · track · ROI · count) | ✅ Done | Tested |
+| Decision engine (rules · cooldown · priority) | ✅ Done | Tested |
+| Governance gate (privacy · consent · confidence) | ✅ Done | Tested |
+| Auth (bcrypt · JWT fail-closed · token types) | ✅ Done | Tested |
+| REST API (12 routers mounted) | ✅ Reachable | Data is volatile |
+| WebSocket live feed (`/ws/vision`) | ✅ Done | Tested over real socket |
+| React dashboard | 🟡 Partial | Blocked by backend gaps |
+| Event dispatch (email · webhook) | 🟡 Partial | Retries 3× with backoff, then dead-letters — **queue is in-memory, lost on restart** |
+| Sync layer (outbox) | 🟡 Partial | Transport stubbed |
+| Event history API (`/api/v1/events`) | ⬜ Not built | Returns `501` — never a fake empty result |
+| **Persistence (Postgres schema)** | ⬜ Not built | **Blocking for V1** |
+| **Multi-tenancy (`org_id` + RLS)** | ⬜ Not built | **Blocking for V1** |
+| **Object storage + clip capture** | ⬜ Not built | **Blocking for V1** |
+| **Durable action queue (survives restart)** | ⬜ Not built | **Blocking for V1** — retry exists, durability does not |
+| Camera onboarding UX | ⬜ Not built | The activation bottleneck |
+| Landing page · signup · login UI | ⬜ Not built | No acquisition surface |
+| Billing · notifications · usage | 🔵 Deferred | Code exists; post-validation |
+
+Ordered plan with dependencies: **[MASTER_BLUEPRINT.md](MASTER_BLUEPRINT.md) → Development Roadmap**.
 
 ---
 
@@ -202,11 +229,11 @@ VISIONX/
 
 | Layer | Technology |
 |-------|-----------|
-| **Detection** | YOLOv8 (Ultralytics) |
+| **Detection** | YOLOv8 (Ultralytics) — ⚠️ AGPL-3.0, see License below |
 | **Vision** | OpenCV, NumPy |
 | **Backend** | FastAPI, Pydantic, Loguru |
-| **Database** | PostgreSQL, Redis, Pinecone |
-| **Auth** | JWT (PyJWT), OAuth2, RBAC |
+| **Database** | PostgreSQL, Redis *(connection stubs — no schema yet)* |
+| **Auth** | JWT (PyJWT), bcrypt, RBAC |
 | **Frontend** | React 19, Vite 8, TypeScript |
 | **3D** | Three.js, React Three Fiber, Drei |
 | **State** | Zustand (persisted) |
@@ -220,22 +247,28 @@ VISIONX/
 
 ## 🧪 Testing
 
+All four gates must pass before any commit:
+
 ```bash
-# Python backend (95 tests)
-python -m pytest tests/ -v
-
-# Frontend type-check
-cd client && npx tsc --noEmit
-
-# Frontend production build
-cd client && npm run build
+python -m pytest tests/ -q                      # 191 tests
+ruff check . --select E,W,F --ignore E501       # backend lint
+cd client && npx tsc --noEmit                   # frontend types
+cd client && npm run build                      # production build
 ```
+
+Rules governing every change: **[EXECUTION_RULES.md](EXECUTION_RULES.md)**.
+Known defects and their status: **[EXECUTION_TRACKER.md](EXECUTION_TRACKER.md)**.
 
 ---
 
 ## 📄 License
 
-MIT License — see [LICENSE](LICENSE) for details.
+VisionX source is MIT — see [LICENSE](LICENSE).
+
+> ⚠️ **Unresolved dependency licensing.** Ultralytics YOLOv8 is **AGPL-3.0**, which is
+> incompatible with closed-source commercial distribution. Before any commercial use,
+> either obtain an Ultralytics commercial licence or migrate to a permissively-licensed
+> detector. Tracked in [ENGINEERING_REVIEW.md](ENGINEERING_REVIEW.md) §10.5.
 
 ---
 

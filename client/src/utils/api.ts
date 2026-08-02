@@ -3,7 +3,10 @@
  * Centralized API calls to FastAPI backend
  */
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+// Same-origin by default. In dev the Vite proxy forwards /api → the backend;
+// in production nginx does the same. Hardcoding http://localhost:8000 here
+// bypassed both and broke as soon as the app was served from anywhere else.
+const API_BASE = import.meta.env.VITE_API_URL || '/api/v1';
 
 interface RequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';

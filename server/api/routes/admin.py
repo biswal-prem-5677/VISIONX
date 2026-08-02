@@ -2,56 +2,59 @@
 VisionX — Admin Routes
 =========================
 Admin god-mode API endpoints.
+
+Authorization
+-------------
+Every route here requires ``Permission.ADMIN_DASHBOARD``, enforced through the
+shared :func:`server.api.dependencies.require_permission` dependency.
+
+This module previously built its *own* ``JWTHandler()`` instance and parsed the
+Authorization header by hand with ``authorization.replace("Bearer ", "")``. Two
+real bugs followed from that:
+
+1. It called ``verify_token()`` without ``expected_type``, so a 30-day **refresh**
+   token was accepted as an admin access token.
+2. Revocation state lives on the handler instance. A token revoked through the
+   shared handler stayed valid here, because this module held a different one.
 """
 
 from __future__ import annotations
 
 try:
-    from fastapi import APIRouter, HTTPException, Header
+    from fastapi import APIRouter, Depends
 except ImportError:
     raise
 
-from server.auth.jwt_handler import JWTHandler
-from server.auth.rbac import RBACChecker, Permission
+from server.api.dependencies import CurrentUser, require_permission
+from server.auth.rbac import Permission
 
-router = APIRouter()
-jwt_handler = JWTHandler()
-
-
-def _require_admin(authorization: str) -> dict:
-    """Verify admin access."""
-    token = authorization.replace("Bearer ", "")
-    payload = jwt_handler.verify_token(token)
-
-    if not payload:
-        raise HTTPException(status_code=401, detail="Invalid token")
-
-    if not RBACChecker.has_permission(payload.role, Permission.ADMIN_DASHBOARD):
-        raise HTTPException(status_code=403, detail="Admin access required")
-
-    return {"user_id": payload.sub, "role": payload.role}
+router = APIRouter(
+    dependencies=[Depends(require_permission(Permission.ADMIN_DASHBOARD))],
+)
 
 
 @router.get("/health")
-async def admin_health(authorization: str = Header("")):
-    """Get system health (admin only)."""
-    _require_admin(authorization)
+async def admin_health():
+    """
+    Get system health (admin only).
 
+    Reports only what this process can verify. The ``database``/``redis`` entries
+    were previously hardcoded to ``"up"`` — a health check that lies is worse
+    than no health check, so unverified dependencies report ``not_configured``.
+    """
     return {
         "status": "healthy",
         "services": {
             "api": "up",
-            "database": "up",
-            "redis": "up",
+            "database": "not_configured",
+            "redis": "not_configured",
         },
     }
 
 
 @router.get("/users")
-async def admin_list_users(authorization: str = Header("")):
+async def admin_list_users():
     """List all users (admin only)."""
-    _require_admin(authorization)
-
     return {
         "users": [],
         "total": 0,
@@ -59,11 +62,12 @@ async def admin_list_users(authorization: str = Header("")):
 
 
 @router.get("/stats")
-async def admin_stats(authorization: str = Header("")):
+async def admin_stats(
+    user: CurrentUser = Depends(require_permission(Permission.ADMIN_DASHBOARD)),
+):
     """Get system-wide statistics (admin only)."""
-    _require_admin(authorization)
-
     return {
+        "requested_by": user.user_id,
         "total_users": 0,
         "active_devices": 0,
         "total_events": 0,

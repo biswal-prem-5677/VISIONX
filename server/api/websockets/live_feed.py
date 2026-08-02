@@ -58,8 +58,14 @@ class ConnectionManager:
                 self.disconnect(connection_id)
 
     async def broadcast(self, channel: str, data: dict) -> None:
-        """Broadcast data to all subscribers of a channel."""
-        subscribers = self._subscriptions.get(channel, set())
+        """
+        Broadcast data to all subscribers of a channel.
+
+        Iterates a snapshot of the subscriber set: awaiting inside the loop
+        yields to the event loop, so a concurrent connect/disconnect would
+        otherwise raise "Set changed size during iteration".
+        """
+        subscribers = tuple(self._subscriptions.get(channel, ()))
         disconnected = []
 
         for conn_id in subscribers:
@@ -73,6 +79,23 @@ class ConnectionManager:
         # Cleanup disconnected
         for conn_id in disconnected:
             self.disconnect(conn_id)
+
+    async def shutdown(self) -> None:
+        """
+        Close every active connection.
+
+        Called on application shutdown so clients get a clean close frame and
+        reconnect deliberately, rather than hanging until a TCP timeout.
+        """
+        for conn_id, ws in tuple(self._active.items()):
+            try:
+                await ws.close(code=1001)  # 1001 = going away
+            except Exception:
+                pass
+            self.disconnect(conn_id)
+
+        self._subscriptions.clear()
+        logger.info("WebSocket manager shut down")
 
     async def broadcast_detection(
         self,

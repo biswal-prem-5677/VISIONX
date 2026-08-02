@@ -43,6 +43,37 @@ class MockFailAction(EventAction):
         raise RuntimeError("Action exploded!")
 
 
+class MockFlakyAction(EventAction):
+    """An action that fails a fixed number of times, then succeeds."""
+
+    action_type = "mock_flaky"
+
+    def __init__(self, fail_times: int = 1):
+        self.call_count = 0
+        self._fail_times = fail_times
+
+    def execute(self, event: Event, context: dict) -> bool:
+        self.call_count += 1
+        if self.call_count <= self._fail_times:
+            raise RuntimeError("Transient failure")
+        return True
+
+
+def _wait_for(predicate, timeout: float = 5.0, interval: float = 0.01) -> bool:
+    """
+    Poll ``predicate`` until it is true or ``timeout`` elapses.
+
+    Actions dispatch on a background thread pool with retry backoff, so a fixed
+    sleep is inherently racy — this waits for the outcome instead of guessing.
+    """
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if predicate():
+            return True
+        time.sleep(interval)
+    return predicate()
+
+
 # ============================================
 # Tests: EventEngine
 # ============================================
@@ -135,27 +166,10 @@ class TestEventEngine:
         assert mock1.call_count == 1
         assert mock2.call_count == 1
 
-    def test_missing_action_warning(self):
-        """Missing action should not crash, just warn."""
-        engine = EventEngine()
-
-        results = [
-            RuleResult(
-                rule_id="test",
-                rule_name="Test",
-                triggered=True,
-                severity=RuleSeverity.INFO,
-                actions=["nonexistent_action"],
-            )
-        ]
-
-        # Should not raise
-        events = engine.process_rule_results(results)
-        assert len(events) == 1
-
     def test_action_error_handled(self):
-        """Action exceptions should be caught, not crash engine."""
-        engine = EventEngine()
+        """Action exceptions should be retried, then dead-lettered — never dropped."""
+        # Tiny delay so the three attempts complete inside the test.
+        engine = EventEngine(max_attempts=3, retry_base_delay=0.001)
         engine.register_action("bad_action", MockFailAction())
 
         results = [
@@ -171,11 +185,70 @@ class TestEventEngine:
         # Should not raise
         events = engine.process_rule_results(results)
         assert len(events) == 1
-        time.sleep(0.05)  # Wait for ThreadPool dispatch
 
-        # Should record failure
+        assert _wait_for(
+            lambda: engine.get_stats()["action_stats"]["bad_action"]["failure"] == 1
+        ), "action never recorded a permanent failure"
+
         stats = engine.get_stats()
-        assert stats["action_stats"]["bad_action"]["failure"] == 1
+        # 3 attempts = 2 retries + 1 permanent failure, dead-lettered once.
+        assert stats["action_stats"]["bad_action"]["retried"] == 2
+        assert stats["action_stats"]["bad_action"]["success"] == 0
+        assert stats["action_stats"]["bad_action"]["dead_lettered"] == 1
+        assert stats["dead_letters"] == 1
+
+        # The failed dispatch is retained for inspection, not discarded.
+        dead = engine.get_dead_letters()
+        assert len(dead) == 1
+        assert dead[0]["action_name"] == "bad_action"
+        assert dead[0]["attempts"] == 3
+        assert "Action exploded!" in dead[0]["last_error"]
+
+    def test_transient_failure_recovered_by_retry(self):
+        """An action that fails once then succeeds must be recorded as a success."""
+        engine = EventEngine(max_attempts=3, retry_base_delay=0.001)
+        engine.register_action("flaky", MockFlakyAction(fail_times=1))
+
+        engine.process_rule_results([
+            RuleResult(
+                rule_id="test",
+                rule_name="Test",
+                triggered=True,
+                severity=RuleSeverity.WARNING,
+                actions=["flaky"],
+            )
+        ])
+
+        assert _wait_for(
+            lambda: engine.get_stats()["action_stats"]["flaky"]["success"] == 1
+        ), "retry never succeeded"
+
+        stats = engine.get_stats()
+        assert stats["action_stats"]["flaky"]["retried"] == 1
+        assert stats["action_stats"]["flaky"]["failure"] == 0
+        assert stats["dead_letters"] == 0
+
+    def test_unregistered_action_is_dead_lettered(self):
+        """A dispatch to an unknown action must not look like a delivered alert."""
+        engine = EventEngine()
+
+        events = engine.process_rule_results([
+            RuleResult(
+                rule_id="test",
+                rule_name="Test",
+                triggered=True,
+                severity=RuleSeverity.INFO,
+                actions=["nonexistent_action"],
+            )
+        ])
+        assert len(events) == 1
+
+        assert _wait_for(lambda: engine.get_stats()["dead_letters"] == 1), (
+            "unregistered action was silently dropped"
+        )
+        stats = engine.get_stats()
+        assert stats["action_stats"]["nonexistent_action"]["failure"] == 1
+        assert stats["action_stats"]["nonexistent_action"]["success"] == 0
 
     def test_severity_mapping(self):
         """Different severities should map to correct event types."""

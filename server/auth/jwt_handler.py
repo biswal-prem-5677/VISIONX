@@ -32,12 +32,74 @@ class TokenPair(BaseModel):
     expires_in: int = 3600  # seconds
 
 
+#: Secret used only when no JWT_SECRET_KEY is configured. Permitted in
+#: development, refused in production (see _resolve_secret).
+_DEV_FALLBACK_SECRET = "visionx-dev-secret-change-in-production"
+
+#: Minimum acceptable secret length in production (~128 bits base64).
+_MIN_PRODUCTION_SECRET_LEN = 32
+
+
+def _is_production() -> bool:
+    """True when the process is running in a production-like environment."""
+    env = (
+        os.getenv("VISIONX_ENV")
+        or os.getenv("APP_ENV")
+        or "development"
+    ).strip().lower()
+    return env in {"production", "prod", "staging"}
+
+
+def _resolve_secret(explicit: str = "") -> str:
+    """
+    Resolve the JWT signing secret, failing closed in production.
+
+    Previously this silently fell back to a hardcoded development secret. A
+    deployment that forgot to set JWT_SECRET_KEY would boot successfully and
+    accept tokens forged by anyone who has read this (public) repository.
+
+    Now: in production a missing or weak secret raises at construction time,
+    so the failure is a startup crash instead of a silent auth bypass.
+    """
+    secret = explicit or os.getenv("JWT_SECRET_KEY", "")
+
+    if not _is_production():
+        if not secret:
+            logger.warning(
+                "JWT_SECRET_KEY not set — using development fallback secret. "
+                "This is refused when VISIONX_ENV=production."
+            )
+            return _DEV_FALLBACK_SECRET
+        return secret
+
+    # --- Production: fail closed ---
+    if not secret:
+        raise RuntimeError(
+            "JWT_SECRET_KEY is required in production and is not set. "
+            "Generate one with: python -c \"import secrets; print(secrets.token_urlsafe(48))\""
+        )
+    if secret == _DEV_FALLBACK_SECRET:
+        raise RuntimeError(
+            "JWT_SECRET_KEY is set to the public development fallback value. "
+            "Refusing to start in production."
+        )
+    if len(secret) < _MIN_PRODUCTION_SECRET_LEN:
+        raise RuntimeError(
+            f"JWT_SECRET_KEY must be at least {_MIN_PRODUCTION_SECRET_LEN} characters "
+            f"in production (got {len(secret)})."
+        )
+    return secret
+
+
 class JWTHandler:
     """
     JWT token management.
 
     Creates and verifies JWT tokens for authentication.
     Supports access tokens (short-lived) and refresh tokens (long-lived).
+
+    Raises:
+        RuntimeError: if running in production without a strong JWT_SECRET_KEY.
     """
 
     def __init__(
@@ -47,9 +109,7 @@ class JWTHandler:
         access_token_expire_minutes: int = 60,
         refresh_token_expire_days: int = 30,
     ):
-        self.secret_key = secret_key or os.getenv(
-            "JWT_SECRET_KEY", "visionx-dev-secret-change-in-production"
-        )
+        self.secret_key = _resolve_secret(secret_key)
         self.algorithm = algorithm
         self.access_expire = timedelta(minutes=access_token_expire_minutes)
         self.refresh_expire = timedelta(days=refresh_token_expire_days)
@@ -98,12 +158,23 @@ class JWTHandler:
             expires_in=int(self.access_expire.total_seconds()),
         )
 
-    def verify_token(self, token: str) -> Optional[TokenPayload]:
+    def verify_token(
+        self,
+        token: str,
+        expected_type: Optional[str] = None,
+    ) -> Optional[TokenPayload]:
         """
         Verify and decode a JWT token.
 
+        Args:
+            token: The encoded JWT.
+            expected_type: If given ("access" or "refresh"), reject tokens whose
+                ``type`` claim does not match. Without this check a long-lived
+                (30-day) refresh token is accepted anywhere an access token is,
+                which defeats the purpose of short-lived access tokens.
+
         Returns:
-            TokenPayload if valid, None if invalid/expired
+            TokenPayload if valid, None if invalid/expired/wrong type.
         """
         try:
             import jwt
@@ -119,6 +190,15 @@ class JWTHandler:
             if jti and jti in self._revoked_tokens:
                 logger.warning(f"Revoked token used: {jti}")
                 return None
+
+            # Enforce token type when the caller specifies one
+            if expected_type is not None:
+                actual_type = payload.get("type", "access")
+                if actual_type != expected_type:
+                    logger.warning(
+                        f"Token type mismatch: expected '{expected_type}', got '{actual_type}'"
+                    )
+                    return None
 
             return TokenPayload(
                 sub=payload["sub"],

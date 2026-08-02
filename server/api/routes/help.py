@@ -2,13 +2,22 @@
 VisionX — Help API Routes
 =============================
 Help center, tickets, and knowledge base endpoints.
+
+Authorization
+-------------
+Knowledge-base reads (``/articles``, ``/search``) are **deliberately public** —
+help content must be readable before signup. Ticket routes require an
+authenticated caller and are scoped to that caller: ``GET /tickets`` previously
+returned every ticket from every user, including their free-text descriptions.
 """
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import Optional
+
+from server.api.dependencies import CurrentUser, get_current_user
 
 router = APIRouter(prefix="/help", tags=["help"])
 
@@ -74,26 +83,36 @@ async def search_articles(q: str):
 
 
 @router.post("/tickets", response_model=TicketResponse)
-async def create_ticket(ticket: SupportTicket):
+async def create_ticket(
+    ticket: SupportTicket,
+    user: CurrentUser = Depends(get_current_user),
+):
     """Submit a support ticket."""
     import time
-    ticket_id = f"VX-{int(time.time())}"
+    import uuid
+
+    # Time-derived IDs collide when two tickets are filed in the same second and
+    # are trivially guessable. A random suffix removes both problems.
+    ticket_id = f"VX-{int(time.time())}-{uuid.uuid4().hex[:6]}"
+    created_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
     _tickets.append({
         "ticket_id": ticket_id,
+        "user_id": user.user_id,
         "subject": ticket.subject,
         "description": ticket.description,
         "priority": ticket.priority,
         "status": "open",
-        "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "created_at": created_at,
     })
     return TicketResponse(
         ticket_id=ticket_id,
         status="open",
-        created_at=time.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        created_at=created_at,
     )
 
 
 @router.get("/tickets")
-async def list_tickets():
-    """List all support tickets."""
-    return _tickets
+async def list_tickets(user: CurrentUser = Depends(get_current_user)):
+    """List the caller's own support tickets."""
+    return [t for t in _tickets if t.get("user_id") == user.user_id]

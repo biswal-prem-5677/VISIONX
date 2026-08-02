@@ -26,10 +26,18 @@ class EmailAction(EventAction):
         to_email: str = "",
         from_email: str = "alerts@visionx.ai",
         api_key: str = "",
+        allow_dry_run: bool = False,
     ):
         self.to_email = to_email or os.getenv("ALERT_EMAIL", "")
         self.from_email = from_email
         self.api_key = api_key or os.getenv("RESEND_API_KEY", "")
+        # Without an API key this action cannot deliver anything. Reporting
+        # success in that state means an unconfigured deployment looks healthy
+        # while every alert is silently discarded (EXECUTION_RULES R7). Dry-run
+        # is now an explicit opt-in for local development.
+        self.allow_dry_run = allow_dry_run or os.getenv(
+            "VISIONX_EMAIL_DRY_RUN", ""
+        ).strip().lower() in {"1", "true", "yes"}
 
     def execute(self, event: Event, context: dict[str, Any]) -> bool:
         """Send email alert."""
@@ -38,12 +46,19 @@ class EmailAction(EventAction):
             return False
 
         if not self.api_key:
-            # Log instead of sending if no API key
-            logger.info(
-                f"[EMAIL] Would send to {self.to_email}: "
-                f"[{event.severity}] {event.message}"
+            if self.allow_dry_run:
+                logger.info(
+                    f"[EMAIL dry-run] Would send to {self.to_email}: "
+                    f"[{event.severity}] {event.message}"
+                )
+                return True
+
+            logger.error(
+                f"Email NOT sent to {self.to_email} — RESEND_API_KEY is not set "
+                f"([{event.severity}] {event.message}). Set the key, or pass "
+                f"allow_dry_run=True / VISIONX_EMAIL_DRY_RUN=1 to accept no-op delivery."
             )
-            return True
+            return False
 
         try:
             import requests

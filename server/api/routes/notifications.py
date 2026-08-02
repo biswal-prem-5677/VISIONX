@@ -2,16 +2,27 @@
 VisionX — Notifications API Route
 ========================================
 CRUD endpoints for notification management.
+
+Authorization
+-------------
+All routes require an authenticated caller — every one of them is scoped to
+"the current user", which is meaningless without knowing who that is.
 """
 
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
 
-router = APIRouter(prefix="/notifications", tags=["notifications"])
+from server.api.dependencies import get_current_user
+
+router = APIRouter(
+    prefix="/notifications",
+    tags=["notifications"],
+    dependencies=[Depends(get_current_user)],
+)
 
 
 class NotificationResponse(BaseModel):

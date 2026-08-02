@@ -2,14 +2,26 @@
 VisionX — Usage Tracking API Route
 ========================================
 Endpoints for viewing usage analytics and quotas.
+
+Authorization
+-------------
+All routes require an authenticated caller — usage and quota are per-account
+figures, so serving them anonymously (as this router previously did) is both a
+leak and meaningless.
 """
 
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
-router = APIRouter(prefix="/usage", tags=["usage"])
+from server.api.dependencies import get_current_user
+
+router = APIRouter(
+    prefix="/usage",
+    tags=["usage"],
+    dependencies=[Depends(get_current_user)],
+)
 
 
 class UsageSummary(BaseModel):

@@ -13,6 +13,7 @@ from loguru import logger
 
 from events.event_engine import EventAction
 from shared.models import Event
+from shared.url_safety import UnsafeURLError, validate_outbound_url
 
 
 class IoTAction(EventAction):
@@ -47,6 +48,15 @@ class IoTAction(EventAction):
     def _send_http(self, event: Event) -> bool:
         """Send HTTP signal to IoT device."""
         try:
+            validate_outbound_url(self.device_url)
+        except UnsafeURLError as e:
+            # IoT devices are commonly on the LAN, so this is the action most
+            # likely to need VISIONX_WEBHOOK_ALLOWED_HOSTS. Making that an
+            # explicit opt-in keeps the default safe.
+            logger.error(f"IoT request blocked by URL policy: {e}")
+            return False
+
+        try:
             import requests
 
             payload = {
@@ -60,24 +70,32 @@ class IoTAction(EventAction):
                 self.device_url,
                 json=payload,
                 timeout=5,
+                allow_redirects=False,
             )
 
             if response.status_code < 300:
                 logger.info(f"IoT signal sent to {self.device_url}")
                 return True
-            else:
-                logger.warning(f"IoT signal failed: {response.status_code}")
-                return False
+
+            logger.warning(f"IoT signal failed: {response.status_code}")
+            return False
 
         except Exception as e:
             logger.error(f"IoT HTTP error: {e}")
             return False
 
     def _send_mqtt(self, event: Event) -> bool:
-        """Send MQTT message to IoT device (placeholder)."""
-        # MQTT implementation would use paho-mqtt library
-        logger.info(
-            f"[MQTT] Would send to {self.device_url}: "
-            f"{event.severity} - {event.message}"
+        """
+        Send MQTT message to IoT device.
+
+        Not implemented. This previously logged "[MQTT] Would send..." and
+        returned ``True``, so the engine recorded a delivered alert for a
+        message that was never sent (EXECUTION_RULES R7). Returning False makes
+        the gap visible in the dead-letter queue instead.
+        """
+        logger.error(
+            f"MQTT transport is not implemented — signal to {self.device_url} "
+            f"was NOT sent ({event.severity}: {event.message}). "
+            f"Install paho-mqtt and implement _send_mqtt, or use device_type='http'."
         )
-        return True
+        return False

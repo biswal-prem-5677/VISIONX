@@ -2,6 +2,12 @@
 VisionX — Vision Routes
 ===========================
 Vision processing API endpoints.
+
+Authorization
+-------------
+All routes require an authenticated caller. Rule creation additionally requires
+``Permission.MANAGE_RULES`` — rules drive real-world actions (alarms, webhooks,
+emails), so rule creation is a privileged operation, not a read.
 """
 
 from __future__ import annotations
@@ -9,13 +15,16 @@ from __future__ import annotations
 from typing import Any
 
 try:
-    from fastapi import APIRouter, HTTPException  # noqa: F401
+    from fastapi import APIRouter, Depends, HTTPException  # noqa: F401
 except ImportError:
     raise
 
 from pydantic import BaseModel
 
-router = APIRouter()
+from server.api.dependencies import get_current_user, require_permission
+from server.auth.rbac import Permission
+
+router = APIRouter(dependencies=[Depends(get_current_user)])
 
 
 class RuleCreateRequest(BaseModel):
@@ -70,7 +79,10 @@ async def list_modules():
     }
 
 
-@router.post("/rules")
+@router.post(
+    "/rules",
+    dependencies=[Depends(require_permission(Permission.MANAGE_RULES))],
+)
 async def create_rule(req: RuleCreateRequest):
     """Create a new detection rule."""
     import uuid

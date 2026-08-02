@@ -128,6 +128,25 @@ class GovernanceValidator:
 
         return approved
 
+    def _policy_applies(
+        self, policy: GovernancePolicy, context: dict[str, Any]
+    ) -> bool:
+        """
+        Whether a policy's scope covers the current context.
+
+        A policy that declares ``blocked_zones`` is **scoped to those zones**.
+        Previously the action check ran first and returned unconditionally, so
+        the built-in ``privacy_zones`` policy — which lists both restricted
+        zones and biometric actions — blocked ``face_recognition`` and
+        ``record_video`` in *every* zone rather than only in bathrooms and
+        changing rooms. It also made the ``biometric_consent`` policy
+        unreachable, since ``privacy_zones`` is evaluated first and always
+        returned for those same actions.
+        """
+        if policy.blocked_zones:
+            return context.get("zone", "") in policy.blocked_zones
+        return True
+
     def _check_policies(
         self, result: RuleResult, context: dict[str, Any]
     ) -> GovernanceResult:
@@ -136,7 +155,11 @@ class GovernanceValidator:
             if not policy.enabled:
                 continue
 
-            # 1. Block specific actions
+            # 0. Scope gate — skip policies that do not apply to this context.
+            if not self._policy_applies(policy, context):
+                continue
+
+            # 1. Block specific actions (within the policy's scope)
             if policy.blocked_actions:
                 blocked = [a for a in result.actions if a in policy.blocked_actions]
                 if blocked:
@@ -159,17 +182,15 @@ class GovernanceValidator:
                             approved_actions=remaining,
                         )
 
-            # 2. Block actions in restricted zones
-            if policy.blocked_zones:
-                zone = context.get("zone", "")
-                if zone in policy.blocked_zones:
-                    return GovernanceResult(
-                        rule_id=result.rule_id,
-                        verdict=GovernanceVerdict.BLOCKED,
-                        policy_id=policy.id,
-                        reason=f"Zone '{zone}' is restricted by policy",
-                        original_actions=result.actions,
-                    )
+            # 2. Zone-scoped policies with no action list block everything in scope.
+            if policy.blocked_zones and not policy.blocked_actions:
+                return GovernanceResult(
+                    rule_id=result.rule_id,
+                    verdict=GovernanceVerdict.BLOCKED,
+                    policy_id=policy.id,
+                    reason=f"Zone '{context.get('zone', '')}' is restricted by policy",
+                    original_actions=result.actions,
+                )
 
             # 3. Severity cap
             if policy.max_severity:

@@ -2,16 +2,27 @@
 VisionX — Analytics Routes
 ==============================
 Analytics and reporting API endpoints.
+
+Authorization
+-------------
+All routes require ``Permission.VIEW_ANALYTICS``. Occupancy and movement
+analytics describe how a customer's site is used; they were previously served
+to anonymous callers.
 """
 
 from __future__ import annotations
 
 try:
-    from fastapi import APIRouter, Query
+    from fastapi import APIRouter, Depends, Query
 except ImportError:
     raise
 
-router = APIRouter()
+from server.api.dependencies import require_permission
+from server.auth.rbac import Permission
+
+router = APIRouter(
+    dependencies=[Depends(require_permission(Permission.VIEW_ANALYTICS))],
+)
 
 
 @router.get("/summary")
