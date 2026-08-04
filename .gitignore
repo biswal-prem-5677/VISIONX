@@ -46,6 +46,13 @@ data/logs/
 data/embeddings/
 data/media/
 
+# --- Local development database ---
+# server/db/session.py falls back to a SQLite file when DATABASE_URL is unset.
+# It is a developer's scratch state, never a deployment target.
+*.db
+*.db-journal
+*.sqlite3
+
 # --- OS ---
 .DS_Store
 Thumbs.db

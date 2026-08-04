@@ -60,6 +60,14 @@
 | DEF-015 | 🟡 Medium | No executor shutdown — interpreter exit could kill a worker mid-action, leaving a half-sent alert recorded neither way | found while fixing DEF-013 | ✅ Fixed | `EventEngine.shutdown(wait=True)` drains in-flight dispatches |
 | DEF-012 | 🟡 Medium | Two hand-built JSON error strings inconsistent with FastAPI's shape; no request correlation | review §5 · `main.py:78,87` | ✅ Fixed | Single `_error_response()` emitting `{error: {code, message, request_id}}`; `X-Request-ID` accepted and echoed on every response. `test_http.py` |
 
+### Persistence and multi-tenancy — R0 class
+
+| ID | Sev | Defect | Evidence | Status | Verification |
+|---|---|---|---|---|---|
+| DEF-025 | 🔴 Critical | **No persistence and no multi-tenancy** — no schema, no models, no migrations, no `org_id` anywhere. Nothing survives a restart | review §4.2, MASTER_BLUEPRINT Phase 1 | 🟡 Partial | The V1 nine-table schema exists, is migrated, and is reachable: `server/db/{base,models,session,tenancy,repositories}.py`, `alembic/versions/0001_initial_schema.py`, engine opened in `server/api/main.py` lifespan, `/health` pings it for real. `tests/test_db.py` (81 tests) + `tests/test_http.py::TestDatabaseIsWiredIntoTheApp`. **No route reads or writes a row yet** — successors DEF-035 (users), DEF-036 (events). Tenancy is enforced in the database only on PostgreSQL, which CI does not run — DEF-034 |
+| DEF-037 | 🟠 High | `/health` and `/api/v1/admin/health` reported `database: not_configured` **as a constant**, so once an engine existed the endpoint would have kept saying so — and the same code shape is how both entries came to be hardcoded `"up"` before Run 1 | found this run (R6) | ✅ Fixed | Both endpoints now run `Database.ping()` (a real `SELECT 1`). `test_http.py::test_health_reports_degraded_when_the_database_is_unreachable` forces a failing ping and asserts `status: degraded` |
+| DEF-038 | 🟡 Medium | **The test suite wrote a database file into the developer's checkout.** `server.db.session` builds its `Database` at *import* time, so the first test module to import it fixes the URL for the entire run. `DATABASE_URL` was being exported from `tests/test_http.py`, which imports later than `tests/test_db.py` — the export was a no-op and the app lifespan opened `./visionx-dev.db`, shared with whatever the developer had running in another window | found this run (R6), after observing the file appear post-run | ✅ Fixed | Moved to `tests/conftest.py`, above its own imports — the only point where the ordering is guaranteed. Verified by deleting the file and re-running the suite: 277 passed, checkout clean. `.gitignore` covers `*.db` as a second line of defence, not as the fix |
+
 ### Testing
 
 | ID | Sev | Defect | Evidence | Status | Verification |
@@ -80,9 +88,12 @@
 
 | ID | Sev | Defect | Why it is still open | Owner |
 |---|---|---|---|---|
-| DEF-022 | 🔴 Critical | **Dead-letter queue is in-memory** — a process restart loses every pending retry and every dead letter. DEF-013 reduced the blast radius; it did not make delivery durable | Requires the `events` / `event_actions` tables. Blocked on DEF-025 | Platform |
-| DEF-023 | 🟠 High | **Dead letters are not inspectable or replayable via the API** — an operator cannot see that alerts were dropped | The API process owns no `EventEngine` instance; the edge process that does has no persistence to read back from. Needs the transport decision in DEF-025 | Platform |
-| DEF-025 | 🔴 Critical | **No persistence and no multi-tenancy** — no schema, no models, no migrations, no `org_id` anywhere. Nothing survives a restart | The 9-table schema + Alembic + RLS is the next unit of work (review §4.2, MASTER_BLUEPRINT Phase 1). Retrofitting tenancy later is a 6–10 week refactor | Platform |
+| DEF-022 | 🔴 Critical | **Dead-letter queue is in-memory** — a process restart loses every pending retry and every dead letter. DEF-013 reduced the blast radius; it did not make delivery durable | ~~Blocked on DEF-025~~ **Unblocked (R6):** `event_actions` now exists with the status/attempts/scheduled_at columns the outbox needs. What remains is the writer — `EventEngine` must record an attempt before dispatching it, not after | Platform |
+| DEF-023 | 🟠 High | **Dead letters are not inspectable or replayable via the API** — an operator cannot see that alerts were dropped | ~~Needs the transport decision in DEF-025~~ Now a read over `event_actions` where `status='dead'`, plus a route. Still open because the writer (DEF-022) has to land first — an endpoint over a table nothing writes would report "no dead letters" exactly as convincingly as today's silence | Platform |
+| ~~DEF-025~~ | 🔴 Critical | ~~**No persistence and no multi-tenancy** — no schema, no models, no migrations, no `org_id` anywhere~~ | **Superseded (R6).** Now 🟡 Partial in the Persistence section above: schema, migrations, RLS DDL, repositories and lifecycle wiring exist; no route uses them yet. Successors: DEF-034, DEF-035, DEF-036 | Platform |
+| DEF-034 | 🟠 High | **Row-Level Security is never exercised.** CI runs on SQLite, which has no RLS, so the database half of tenant isolation is asserted only as DDL strings. Application-layer scoping is genuinely tested; the backstop that catches a hand-written `select()` is not | Needs a PostgreSQL service container in the CI workflow and a variant of `TestTenantScoping` that runs against it. Until then the honest claim is "isolation is enforced in application code, and the policies are believed correct" | Platform |
+| DEF-035 | 🟠 High | **Users are still an in-memory dict** (`server/api/routes/auth.py:98`). Every account created through `/auth/register` vanishes on restart, and the `users` table it should be writing to sits empty | The table, repository and login exemption are built. Cutting auth over means moving bootstrap-admin creation into a first-run migration/seed and giving every login a tenant — enough surface to be its own change rather than a rider on the schema | Platform |
+| DEF-036 | 🟠 High | **`/api/v1/events` still returns 501** and nothing writes the `events` table. The product's central artefact is still not durable | Honest today (DEF-021), but the schema exists now, so the 501 is a countdown rather than a position. Needs the edge→API event ingest path, which is the transport decision named in DEF-023 | Platform |
 | DEF-026 | 🟡 Medium | Access token stored in `localStorage` → XSS-exfiltratable; no documented CSRF position | review S8 · `client/src/utils/api.ts:27` | Frontend |
 | DEF-027 | 🟢 Low | CSP allows `'unsafe-inline'` for `script-src` | review S10 · `docker/nginx.conf:18` | Frontend |
 | DEF-028 | 🟠 High | Camera credentials unencrypted — RTSP URLs embed `user:password@`, no encryption-at-rest design | review S6 · `edge/core/camera.py` | Platform |
@@ -114,6 +125,20 @@
 | **Not verified** | The nginx fix (DEF-009) was reasoned from the nginx `proxy_pass` prefix-replacement rule and reviewed by inspection — **it was not exercised against a running container.** Logged as part of DEF-024 |
 | **Outcome** | The three critical security findings are closed and the product's core UX (live feed) functions for the first time. **The platform layer is untouched** — the project remains pre-production and non-durable. Reality score movement is in security and reachability only |
 
+### Run 2 — 2026-08-04 · Persistence and multi-tenancy foundation (DEF-025)
+
+| | |
+|---|---|
+| **Scope** | The V1 schema from ENGINEERING_REVIEW §4.2: nine tables, `org_id` on every one of them, Alembic, Row-Level Security, tenant-scoped repositories — then wiring the result into the running application so it is reachable rather than merely present |
+| **Closed** | DEF-037 (health endpoints reported a constant instead of a probe), DEF-038 (test suite wrote a database into the checkout) |
+| **Advanced** | DEF-025 → 🟡 Partial. DEF-022 and DEF-023 unblocked — their tables now exist |
+| **Opened** | DEF-034 (RLS untested in CI), DEF-035 (users still in-memory), DEF-036 (events still 501), DEF-037, DEF-038 |
+| **Tests** | 191 → **277** (`+81` database layer, `+5` HTTP database wiring) |
+| **Gates (R3)** | ✅ `pytest -q` 277 passed · ✅ `ruff check . --select E,W,F --ignore E501` — All checks passed · ✅ `npx tsc --noEmit` exit 0 · ✅ `npm run build` built in 532ms — all four executed on Windows, all green |
+| **Not verified** | **Row-Level Security has never run.** Every RLS assertion in `tests/test_db.py::TestRowLevelSecurityPlumbing` inspects DDL *strings*; SQLite has no policies to enforce, so no test in this repository has observed PostgreSQL reject a cross-tenant row. Logged as DEF-034. Likewise the monthly `events` partitions and the PostgreSQL-version guard in migration `0001` are skipped on SQLite and so are unexecuted code |
+| **Decisions worth naming** | (1) `create_all()` refuses to run against PostgreSQL — it omits RLS and partitions, so it would build a schema that looks right and isolates nothing; production is Alembic only, and `TestMigrationParity` proves the two paths agree so the fast test path cannot drift. (2) `events` takes a composite primary key `(id, occurred_at)` now, because PostgreSQL requires the partition key in every unique constraint and adding partitioning later means rebuilding a live table. (3) The one unscoped read in the codebase, `find_user_for_authentication`, opts *itself* into a SELECT-only policy exemption, so the exemption travels with the query that needs it and cannot be copied by accident. (4) `/health` stays HTTP 200 when the database is down: it is the container healthcheck, restarting the API does not repair Postgres, and the body reports `degraded` rather than lying |
+| **Outcome** | VisionX has a schema, migrations, and tenancy for the first time, and the engine is opened by the application rather than by tests alone. **It is not yet a durable product:** users are still a dict, events still return 501, and nothing has written a row outside a test. The honest position moved from "no persistence" to "persistence exists and is unused" |
+
 ---
 
 ## Change log for this file
@@ -121,3 +146,4 @@
 | Date | Change |
 |---|---|
 | 2026-08-02 | Created (DEF-020). Run 1 recorded retroactively; R4 applies prospectively from Run 2 |
+| 2026-08-04 | Run 2 recorded. Added a Persistence section; DEF-025 struck through in Open and superseded by a 🟡 Partial row; DEF-034 … DEF-038 opened |

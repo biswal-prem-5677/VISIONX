@@ -27,6 +27,7 @@ except ImportError:
 
 from server.api.dependencies import CurrentUser, require_permission
 from server.auth.rbac import Permission
+from server.db.session import database
 
 router = APIRouter(
     dependencies=[Depends(require_permission(Permission.ADMIN_DASHBOARD))],
@@ -38,15 +39,20 @@ async def admin_health():
     """
     Get system health (admin only).
 
-    Reports only what this process can verify. The ``database``/``redis`` entries
-    were previously hardcoded to ``"up"`` — a health check that lies is worse
-    than no health check, so unverified dependencies report ``not_configured``.
+    Reports only what this process can verify. Both entries were once hardcoded
+    to ``"up"`` — a health check that lies is worse than no health check.
+
+    ``database`` is now a real ``SELECT 1`` against the configured engine.
+    ``redis`` stays ``not_configured`` because nothing in the application
+    connects to it yet, so any other value would be invented (tracker DEF-024).
     """
+    database_up = await database.ping()
+
     return {
-        "status": "healthy",
+        "status": "healthy" if database_up else "degraded",
         "services": {
             "api": "up",
-            "database": "not_configured",
+            "database": "up" if database_up else "down",
             "redis": "not_configured",
         },
     }

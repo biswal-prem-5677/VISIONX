@@ -28,7 +28,10 @@ httpx>=0.27.0               # Async HTTP client
 
 # --- Database ---
 sqlalchemy>=2.0.0
+alembic>=1.13.0             # Migrations — the schema's only sanctioned change path
 asyncpg>=0.29.0             # PostgreSQL async driver
+aiosqlite>=0.20.0           # SQLite async driver (development and tests only)
+greenlet>=3.0.0             # Required by SQLAlchemy's async bridge
 redis>=5.0.0
 psycopg2-binary>=2.9.0
 

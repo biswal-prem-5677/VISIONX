@@ -16,6 +16,9 @@ These tests assert *reachability and contract*, not business depth.
 from __future__ import annotations
 
 import os
+import tempfile
+from contextlib import contextmanager
+from pathlib import Path
 
 import pytest
 
@@ -23,6 +26,10 @@ import pytest
 os.environ.setdefault("BOOTSTRAP_ADMIN_PASSWORD", "test-admin-password-123")
 os.environ.setdefault("BOOTSTRAP_ADMIN_EMAIL", "admin@visionx.ai")
 os.environ.setdefault("VISIONX_ENV", "development")
+
+# DATABASE_URL is deliberately *not* set here. It has to be exported before
+# ``server.db.session`` is first imported by any module, which is earlier than
+# this file — see the note at the top of ``tests/conftest.py``.
 
 fastapi_testclient = pytest.importorskip(
     "fastapi.testclient", reason="fastapi/httpx required for HTTP tests"
@@ -84,6 +91,110 @@ class TestSystemEndpoints:
     def test_request_id_is_echoed(self, client):
         resp = client.get("/health", headers={"X-Request-ID": "trace-me-123"})
         assert resp.headers["X-Request-ID"] == "trace-me-123"
+
+
+# ============================================
+# Database wiring — DEF-025 reachability
+# ============================================
+
+class TestDatabaseIsWiredIntoTheApp:
+    """
+    The persistence layer must be *reached* by the application, not merely
+    present in the tree.
+
+    ``server/db`` was written as a complete unit — schema, migrations, RLS,
+    repositories, 81 tests — and imported by nothing outside its own tests. That
+    is precisely the failure this repository has already shipped twice: five
+    routers that were never mounted and a WebSocket manager referenced from
+    nowhere (DEF-007, DEF-008). Code that only tests call is not reachable, and
+    under R0 it is not done.
+
+    These tests run over real HTTP against the real lifespan, so a future edit
+    that drops ``database.connect()`` from startup fails here rather than in
+    production.
+    """
+
+    def test_lifespan_connects_the_engine(self, client):
+        """``connect()`` runs on startup, not lazily on the first query."""
+        from server.db.session import database
+
+        assert database.is_connected
+
+    def test_health_reports_the_database_it_actually_pinged(self, client):
+        body = client.get("/health").json()
+        assert body["services"]["database"] == "up"
+        assert body["status"] == "healthy"
+
+    def test_health_reports_degraded_when_the_database_is_unreachable(
+        self, client, monkeypatch
+    ):
+        """
+        The regression this guards: reporting ``healthy`` from the mere presence
+        of an engine object. The entry has to come from a query that ran.
+        """
+        from server.db.session import database
+
+        async def unreachable() -> bool:
+            return False
+
+        monkeypatch.setattr(database, "ping", unreachable)
+
+        resp = client.get("/health")
+        body = resp.json()
+
+        assert body["services"]["database"] == "down"
+        assert body["status"] == "degraded"
+
+        # Still 200: this endpoint is the container healthcheck, and restarting
+        # the API does not repair the database. See the docstring on health_check.
+        assert resp.status_code == 200
+
+    def test_admin_health_reports_the_real_database_too(self, client, admin_token):
+        """The admin view once hardcoded ``not_configured`` for both entries."""
+        body = client.get(
+            "/api/v1/admin/health",
+            headers={"Authorization": f"Bearer {admin_token}"},
+        ).json()
+
+        assert body["services"]["database"] == "up"
+        # Redis genuinely is not connected by anything — saying so is the honest
+        # answer, and inventing "up" is the bug this replaced (DEF-024).
+        assert body["services"]["redis"] == "not_configured"
+
+    def test_shutdown_disposes_the_engine(self):
+        """
+        A pool abandoned to the garbage collector holds server-side connections
+        open until they time out. Uses its own client so the module-scoped one
+        stays connected for every other test.
+        """
+        from server.db.session import Database
+
+        import server.api.main as main_module
+
+        with tempfile.TemporaryDirectory() as tmp:
+            isolated = Database(f"sqlite+aiosqlite:///{Path(tmp) / 'shutdown.db'}")
+
+            with monkeypatched(main_module, "database", isolated):
+                with TestClient(main_module.app):
+                    assert isolated.is_connected
+                assert not isolated.is_connected
+
+
+@contextmanager
+def monkeypatched(module, name: str, value):
+    """
+    Swap a module attribute for the duration of a block.
+
+    ``monkeypatch`` is function-scoped and undoes itself at teardown, which is
+    after the ``TestClient`` context exits — too late to assert on what shutdown
+    did. This unwinds in the order the assertion needs.
+    """
+    original = getattr(module, name)
+    setattr(module, name, value)
+    try:
+        yield value
+    finally:
+        setattr(module, name, original)
 
 
 # ============================================

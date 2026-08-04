@@ -4,13 +4,16 @@
 
 **VisionX** is a distributed AI vision platform. It runs on any device — from Raspberry Pi to cloud GPUs. It detects objects, tracks them, evaluates rules, checks each action against a privacy policy, and then acts.
 
-**191 tests passing · edge-first architecture · governance-gated actions**
+**277 tests passing · edge-first architecture · governance-gated actions**
 
 > ### ⚠️ Project status: pre-production prototype
 >
 > The vision pipeline (detect → track → decide → govern → act) works and is tested.
-> The SaaS platform around it does **not** yet exist: **no database schema, no
-> multi-tenancy, no object storage, no durable job queue.** Nothing survives a restart.
+> The SaaS platform around it is **half-built**: there is now a Postgres schema with
+> multi-tenancy and migrations, and the API opens the engine at startup — but **no
+> route reads or writes a row yet.** Users are still an in-memory dict, event history
+> still returns `501`, and there is still no object storage and no durable job queue.
+> In practice: **nothing you create through the API survives a restart.**
 >
 > **Do not deploy this to production.** See **[MASTER_BLUEPRINT.md](MASTER_BLUEPRINT.md)**
 > for what is actually built, **[ENGINEERING_REVIEW.md](ENGINEERING_REVIEW.md)**
@@ -67,8 +70,26 @@ cd VISIONX
 python -m venv .venv
 .\.venv\Scripts\activate        # Windows
 pip install -r requirements.txt
-python -m pytest tests/ -v      # Run tests (191 passing)
+python -m pytest tests/ -v      # Run tests (277 passing)
 ```
+
+### Database
+
+Migrations are the only sanctioned way to change the schema — `create_all()`
+refuses to run against PostgreSQL because it omits the row-level security
+policies and monthly partitions, which would produce a schema that looks correct
+and isolates nothing.
+
+```bash
+export DATABASE_URL=postgresql://user:pass@localhost:5432/visionx
+alembic upgrade head            # apply migrations
+alembic downgrade -1            # step back one revision
+```
+
+With `DATABASE_URL` unset, development falls back to a local SQLite file. That
+fallback is **refused** when `VISIONX_ENV=production`: a deployment that forgets
+the variable crashes at startup rather than quietly accepting writes nobody will
+read back.
 
 ### Frontend
 
@@ -136,6 +157,12 @@ VISIONX/
 │   │   ├── main.py               # FastAPI app
 │   │   ├── routes/               # Auth, events, analytics, GDPR, etc.
 │   │   └── middleware/           # CORS, rate limit, auth, abuse detection
+│   ├── db/                       # Persistence + multi-tenancy
+│   │   ├── base.py               # Declarative base, portable column types
+│   │   ├── models.py             # The 9 V1 tables — every one carries org_id
+│   │   ├── session.py            # Engine, fail-closed URL resolution
+│   │   ├── tenancy.py            # Row-Level Security plumbing
+│   │   └── repositories.py       # The only sanctioned query surface
 │   ├── auth/                     # JWT + OAuth2 + RBAC
 │   ├── billing/                  # Stripe + plan definitions
 │   ├── notifications/            # Push, email, SMS, in-app channels
@@ -162,8 +189,13 @@ VISIONX/
 │   ├── docker-compose.yml        # Full stack: client + API + edge + PG + Redis
 │   └── nginx.conf                # Production Nginx config
 │
+├── alembic/                      # Database migrations
+│   ├── env.py                    # Resolves the URL through server.db.session
+│   └── versions/
+│       └── 0001_initial_schema.py # 9 tables + RLS + monthly partitions
+│
 ├── .github/workflows/ci.yml     # GitHub Actions CI/CD
-├── tests/                        # 191 tests (pytest, incl. HTTP + WebSocket)
+├── tests/                        # 277 tests (pytest, incl. HTTP + WebSocket + DB)
 ├── EXECUTION_RULES.md            # Binding rules for every change
 ├── EXECUTION_TRACKER.md          # Defect log + run log
 ├── MASTER_BLUEPRINT.md           # What is actually built
@@ -213,8 +245,8 @@ route, *durable* across a restart, and *tested* through its real interface.
 | Event dispatch (email · webhook) | 🟡 Partial | Retries 3× with backoff, then dead-letters — **queue is in-memory, lost on restart** |
 | Sync layer (outbox) | 🟡 Partial | Transport stubbed |
 | Event history API (`/api/v1/events`) | ⬜ Not built | Returns `501` — never a fake empty result |
-| **Persistence (Postgres schema)** | ⬜ Not built | **Blocking for V1** |
-| **Multi-tenancy (`org_id` + RLS)** | ⬜ Not built | **Blocking for V1** |
+| **Persistence (Postgres schema)** | 🟡 Partial | 9 tables, Alembic migrations, `events` partitioned by month. Engine opens at startup and `/health` pings it — but **no route reads or writes a row yet** |
+| **Multi-tenancy (`org_id` + RLS)** | 🟡 Partial | `org_id` on all 8 tenant tables, `NOT NULL` + `ON DELETE CASCADE` + indexed, enforced by repositories that have no unscoped path. RLS policies are written and applied by the migration but **never exercised — CI runs on SQLite** |
 | **Object storage + clip capture** | ⬜ Not built | **Blocking for V1** |
 | **Durable action queue (survives restart)** | ⬜ Not built | **Blocking for V1** — retry exists, durability does not |
 | Camera onboarding UX | ⬜ Not built | The activation bottleneck |
@@ -232,7 +264,7 @@ Ordered plan with dependencies: **[MASTER_BLUEPRINT.md](MASTER_BLUEPRINT.md) →
 | **Detection** | YOLOv8 (Ultralytics) — ⚠️ AGPL-3.0, see License below |
 | **Vision** | OpenCV, NumPy |
 | **Backend** | FastAPI, Pydantic, Loguru |
-| **Database** | PostgreSQL, Redis *(connection stubs — no schema yet)* |
+| **Database** | PostgreSQL + SQLAlchemy 2 (async) + Alembic · SQLite for dev/CI · Redis *(still a connection stub)* |
 | **Auth** | JWT (PyJWT), bcrypt, RBAC |
 | **Frontend** | React 19, Vite 8, TypeScript |
 | **3D** | Three.js, React Three Fiber, Drei |
@@ -250,7 +282,7 @@ Ordered plan with dependencies: **[MASTER_BLUEPRINT.md](MASTER_BLUEPRINT.md) →
 All four gates must pass before any commit:
 
 ```bash
-python -m pytest tests/ -q                      # 191 tests
+python -m pytest tests/ -q                      # 277 tests
 ruff check . --select E,W,F --ignore E501       # backend lint
 cd client && npx tsc --noEmit                   # frontend types
 cd client && npm run build                      # production build

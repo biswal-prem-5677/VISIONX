@@ -29,6 +29,11 @@ from server.api.middleware.cors import get_cors_config
 from server.api.middleware.rate_limiter import RateLimiter
 from server.api.websockets.live_feed import ws_manager
 
+# Importing this resolves DATABASE_URL, which in production raises rather than
+# guessing at a local file (server/db/session.py). A misconfigured deployment
+# therefore fails at import — before it can accept a request it cannot serve.
+from server.db.session import database
+
 API_VERSION = "0.3.0"
 
 # NOTE: both are per-process, in-memory. They are correct for a single replica
@@ -48,14 +53,30 @@ _RATE_LIMIT_EXEMPT = frozenset({"/health", "/", "/docs", "/redoc", "/openapi.jso
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application startup and shutdown."""
+    """
+    Application startup and shutdown.
+
+    The database engine is created here rather than lazily on first use, so the
+    connection pool is warm before the first request and disposed of on the way
+    out instead of being abandoned to the garbage collector.
+
+    ``connect()`` does not dial the server — SQLAlchemy engines connect lazily —
+    so an unreachable database does not prevent startup. It surfaces at
+    ``/health``, which pings for real and reports ``degraded``. Refusing to boot
+    would be the wrong trade: the process still serves every route that needs no
+    row, and a crash loop during a database outage removes capacity without
+    fixing anything.
+    """
     logger.info(f"=== VisionX Platform Starting (v{API_VERSION}) ===")
+
+    await database.connect()
     logger.info("Platform services ready")
 
     yield
 
     logger.info("=== VisionX Platform Shutting Down ===")
     await ws_manager.shutdown()
+    await database.disconnect()
 
 
 # ============================================
@@ -150,18 +171,34 @@ async def root():
 @app.get("/health", tags=["System"])
 async def health_check():
     """
-    Liveness/readiness probe.
+    Liveness probe.
 
-    Reports only what this process can actually verify. Downstream dependency
-    checks (Postgres, Redis) belong here once those connections exist — a health
-    check that reports "healthy" without checking dependencies is worse than none.
+    Reports only what this process can actually verify. The database entry is a
+    real ``SELECT 1`` — not a guess from the fact that an engine object exists —
+    because a health check that reports "healthy" without touching its
+    dependencies is worse than no health check at all.
+
+    **Why an unreachable database is still HTTP 200.** This endpoint is wired as
+    the container healthcheck in ``docker/Dockerfile.server`` and
+    ``docker/docker-compose.yml``, where a non-200 means *restart this process*.
+    Restarting the API does not repair Postgres; it removes serving capacity in
+    the middle of an outage and drops every live WebSocket with it. So the status
+    code answers "is this process alive", while ``status`` and ``services`` in
+    the body answer "can it do its job" — and the body never claims ``healthy``
+    when it cannot. A caller that needs readiness semantics reads ``status``.
+
+    Redis is still absent from this list on purpose: no part of the application
+    connects to it yet, so any value here would be invented (tracker DEF-024).
     """
+    database_up = await database.ping()
+
     return {
-        "status": "healthy",
+        "status": "healthy" if database_up else "degraded",
         "version": API_VERSION,
         "timestamp": time.time(),
         "services": {
             "api": "up",
+            "database": "up" if database_up else "down",
             "rate_limiter": "active",
             "abuse_detector": "active",
             "websocket": "active",
